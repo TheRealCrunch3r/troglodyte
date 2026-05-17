@@ -26,6 +26,12 @@ Troglodyte sits between you and the LLM, compressing prompts in real-time:
 
 ### Quick Install (Recommended)
 
+Over the LM Studio Hub:
+```bash
+lms get crunch3r/troglodyte
+```
+
+Or manually:
 ```bash
 cd "C:\Source Code\LM Studio Plugins\troglodyte"
 lms dev --install

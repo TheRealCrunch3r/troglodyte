@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.1] - 2026-05-17
 
+### 🚀 Published to LM Studio Hub
+- Plugin is now available via `lms get crunch3r/troglodyte`
+- Live at: https://lmstudio.ai/crunch3r/troglodyte
+
 ### 🔧 Dependency Updates
 
 - **TypeScript:** `5.3.0` → `6.0.3` (latest stable)
