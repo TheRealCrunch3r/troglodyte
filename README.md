@@ -27,7 +27,7 @@ Troglodyte sits between you and the LLM, compressing prompts in real-time:
 ### Quick Install (Recommended)
 
 ```bash
-cd "C:\Source Code\LM Studio Plugins\troglodyte"
+\LM Studio Plugins\troglodyte"
 lms dev --install
 ```
 
@@ -50,7 +50,7 @@ LM Studio will automatically reload the updated plugin.
 For active development with hot-reload:
 
 ```bash
-cd "C:\Source Code\LM Studio Plugins\troglodyte"
+LM Studio Plugins\troglodyte"
 npm run dev
 ```
 
