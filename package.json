@@ -1,0 +1,26 @@
+{
+  "name": "lmstudio-troglodyte",
+  "version": "1.0.0",
+  "description": "Troglodyte - Reduce token usage by removing fluff and filler from prompts",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "lms dev",
+    "package": "npm run build && node scripts/package.cjs",
+    "install-plugin": "npm run build && node scripts/install.cjs"
+  },
+  "dependencies": {
+    "@lmstudio/sdk": "^1.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.19",
+    "typescript": "^6.0.3"
+  },
+  "lmstudio": {
+    "displayName": "Troglodyte",
+    "description": "Automatically compresses your prompts by removing polite filler words and redundant phrasing before sending them to the LLM. Saves tokens and reduces latency.",
+    "capabilities": [
+      "promptPreprocessor"
+    ]
+  }
+}

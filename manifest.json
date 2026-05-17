@@ -1,0 +1,7 @@
+{
+  "type": "plugin",
+  "runner": "node",
+  "owner": "troglodyte",
+  "name": "lmstudio-troglodyte",
+  "revision": 1
+}
