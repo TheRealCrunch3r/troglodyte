@@ -61,6 +61,7 @@ async function preprocess(ctl, userMessage) {
     const protectUrls = pluginConfig.get("protectUrls") ?? true;
     const protectNumbers = pluginConfig.get("protectNumbers") ?? true;
     const protectHeaders = pluginConfig.get("protectHeaders") ?? true;
+    const protectFilePaths = pluginConfig.get("protectFilePaths") ?? true;
     const languageMode = pluginConfig.get("languageMode") ?? "auto";
     const showStats = pluginConfig.get("showStats") ?? true;
     // Create status report for UI feedback
@@ -81,6 +82,7 @@ async function preprocess(ctl, userMessage) {
             protectUrls,
             protectNumbers,
             protectHeaders,
+            protectFilePaths,
             language: languageMode !== "auto" ? languageMode : undefined,
         });
         // Reconstruct the full message with compressed user input + original system metadata
@@ -111,11 +113,13 @@ async function preprocess(ctl, userMessage) {
         return compressed;
     }
     catch (error) {
-        console.error("[Troglodyte] Error compressing prompt:", error);
-        // Update status to show error
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error("[Troglodyte] Error compressing prompt:", errorMessage);
+        console.error("[Troglodyte] Stack trace:", error instanceof Error ? error.stack : 'N/A');
+        // Update status to show error with details
         status.setState({
             status: "done",
-            text: "Compression failed - using original",
+            text: `Compression failed (${errorMessage.substring(0, 40)}...) - using original`,
         });
         // Return original message if compression fails
         return userMessage.getText();

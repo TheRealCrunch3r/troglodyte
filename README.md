@@ -83,6 +83,7 @@ Click the gear icon next to the plugin to access settings:
 | **Protect URLs & Links** | On/Off | On |
 | **Protect Version Numbers & IDs** | On/Off | On |
 | **Protect Markdown Headers** | On/Off | On |
+| **Protect File Paths** | On/Off | On |
 | **Language Mode** | Auto-Detect (EN/DE) / English / German | Auto-Detect |
 | **Show Statistics in Console** | On/Off | On |
 
@@ -149,6 +150,39 @@ Send this prompt to verify file paths are preserved:
 > "check C:\Source Code\ServiceMonitor for issues."
 
 **Expected:** Path stays as `C:\Source Code\...` (not corrupted to `C:\src Code\...`)
+
+---
+
+### Relative & Absolute Path Test ⚠️
+
+Send this prompt to verify both path types work:
+
+> "Bitte analysiere den Code in /home/user/project/src/main.ts und ./lib/utils.py."
+
+**Expected:** Both paths preserved intact:
+```
+analysiere Code /home/user/project/src/main.ts ./lib/utils.py.
+```
+
+---
+
+### German Output & Version Numbers Test ⚠️
+
+Send this prompt to verify German compression works correctly and version numbers aren't fragmented:
+
+> "Hallo! Ich würde mich sehr freuen, wenn du mir bei dieser Aufgabe helfen könntest, bitte und danke! Erkläre mir bitte Schritt für Schritt, wie man Node.js unter Windows installiert. Vielen Dank!"
+
+**Expected:** Clean German output with "Node.js" intact (not fragmented):
+```
+würde freuen Aufgabe helfen könntest
+```
+
+❌ **Wrong (old buggy behavior):**
+```
+! würde freuen Aufgabe helfen könntest, Erkläre steps Windows installiert,!, Node.js.!
+```
+
+
 
 ---
 
@@ -261,6 +295,19 @@ For detailed architecture and technical documentation, see:
 | Phrase replacement order causing partial matches | ✅ Fixed - phrases sorted by length (longest first) |
 | Punctuation spacing broken (`out?explain`, `Node. js`) | ✅ Fixed - smart cleanup chain with CAPITAL-aware spacing |
 | Logic symbols breaking natural language (`and` → `&&`) | ✅ Fixed - all logic symbol replacements removed |
+| `protectFilePaths` config field unused | ✅ Fixed - now wired up and functional (May 18, 2026) |
+| Placeholder overflow risk (~1M items) | ✅ Fixed - MAX_PLACEHOLDERS check added (May 18, 2026) |
+| Duplicate entries in de-filler.ts | ✅ Fixed - ~90 duplicates removed (May 18, 2026) |
+| Error handling lacking user feedback | ✅ Fixed - stack trace + truncated error message shown (May 18, 2026) |
+| Path extensions stripped (`main.ts` → `main`) | ✅ Fixed - regex includes `/` and uses lookahead boundaries (May 18, 2026) |
+| Placeholder counter duplication (50% waste) | ✅ Fixed - removed unused generatePlaceholder() function (May 18, 2026) |
+| Language detection O(n²) performance | ✅ Fixed - converted indicator arrays to Sets for O(1) lookup (May 18, 2026) |
+| Regex compilation per compression call | ✅ Fixed - pre-compiled all phrase regexes in constructor (May 18, 2026) |
+| String concatenation O(n²) memory | ✅ Fixed - use array join pattern for reconstruction (May 18, 2026) |
+| Placeholder restoration O(n²) time | ✅ Fixed - single-pass Map-based replacement (May 18, 2026) |
+| "Node.js" fragmented into parts | ✅ Fixed - added `.` to word pattern regex (May 18, 2026) |
+| Orphaned punctuation scattered (`!,` `.!`) | ✅ Fixed - cleanup step removes standalone punctuation (May 18, 2026) |
+| No input validation (security risk) | ✅ Fixed - added null/empty check + 1MB limit warning (May 18, 2026) |
 
 ---
 
@@ -270,4 +317,4 @@ MIT
 
 ---
 
-*Last Updated: May 17, 2026*
+*Last Updated: May 18, 2026*

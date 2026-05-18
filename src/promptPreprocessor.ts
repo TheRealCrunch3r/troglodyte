@@ -69,6 +69,7 @@ export async function preprocess(ctl: PromptPreprocessorController, userMessage:
   const protectUrls = pluginConfig.get("protectUrls") as boolean ?? true;
   const protectNumbers = pluginConfig.get("protectNumbers") as boolean ?? true;
   const protectHeaders = pluginConfig.get("protectHeaders") as boolean ?? true;
+  const protectFilePaths = pluginConfig.get("protectFilePaths") as boolean ?? true;
   const languageMode = pluginConfig.get("languageMode") as string ?? "auto";
   const showStats = pluginConfig.get("showStats") as boolean ?? true;
 
@@ -94,6 +95,7 @@ export async function preprocess(ctl: PromptPreprocessorController, userMessage:
       protectUrls,
       protectNumbers,
       protectHeaders,
+      protectFilePaths,
       language: languageMode !== "auto" ? (languageMode as import('./troglodyte').LanguageCode) : undefined,
     });
 
@@ -129,12 +131,14 @@ export async function preprocess(ctl: PromptPreprocessorController, userMessage:
 
     return compressed;
   } catch (error) {
-    console.error("[Troglodyte] Error compressing prompt:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("[Troglodyte] Error compressing prompt:", errorMessage);
+    console.error("[Troglodyte] Stack trace:", error instanceof Error ? error.stack : 'N/A');
     
-    // Update status to show error
+    // Update status to show error with details
     status.setState({
       status: "done" as const,
-      text: "Compression failed - using original",
+      text: `Compression failed (${errorMessage.substring(0, 40)}...) - using original`,
     });
 
     // Return original message if compression fails

@@ -9,7 +9,7 @@ export const DE_GENTLE = [
   'ähm', 'äh', 'hm', 'hmm', 'oh', 'ach', 'na', 'tja',
 ];
 
-// Balanced tier: ~250 high-frequency German words
+// Balanced tier: ~250 high-frequency German words (deduplicated)
 export const DE_BALANCED = [
   ...DE_GENTLE,
   // Articles
@@ -17,7 +17,7 @@ export const DE_BALANCED = [
   // Pronouns
   'ich', 'mich', 'mir', 'mein', 'meine', 'meiner', 'uns', 'unsere', 'unserer',
   'du', 'dich', 'dir', 'dein', 'deine', 'er', 'ihn', 'ihm', 'sein', 'seine',
-  'sie', 'ihr', 'ihre', 'es', 'wir', 'ihr', 'euch', 'man', 'mensch',
+  'sie', 'ihr', 'ihre', 'es', 'wir', 'euch', 'man', 'mensch',
   // Copulas
   'ist', 'sind', 'war', 'waren', 'sein', 'gewesen', 'werde', 'werden', 'wurde',
   // Auxiliaries
@@ -28,33 +28,31 @@ export const DE_BALANCED = [
   'durch', 'um', 'bis', 'ohne', 'aus', 'vor', 'zwischen', 'gegen', 'seit',
   'während', 'hinter', 'neben', 'oberhalb', 'unterhalb', 'innerhalb', 'außerhalb',
   'statt', 'trotz', 'wegen', 'gemäß', 'laut', 'entlang', 'entgegen', 'fern',
-  'jenseits', 'knap', 'nördlich', 'östlich', 'südlich', 'westlich', 'ab', 'an',
-  'aus', 'bei', 'bis', 'durch', 'entlang', 'für', 'gegen', 'ohne', 'seit',
-  'um', 'von', 'vor', 'zu', 'zwischen',
+  'jenseits', 'knap', 'nördlich', 'östlich', 'südlich', 'westlich', 'ab',
   // Conjunctions
   'und', 'oder', 'aber', 'denn', 'sondern', 'weil', 'da', 'obwohl', 'wenn',
-  'falls', 'damit', 'während', 'bevor', 'nachdem', 'sobald', 'bis', 'seit',
-  'als', 'wie', 'dass', 'ob', 'entweder', 'noch', 'sowohl', 'weder',
+  'falls', 'damit', 'bevor', 'nachdem', 'sobald', 'als', 'wie', 'dass', 'ob',
+  'entweder', 'noch', 'sowohl', 'weder',
   // Demonstratives
   'dieser', 'diese', 'dieses', 'diesem', 'diesen', 'jener', 'jene', 'solch',
-  'solcher', 'selbst', 'selber', 'eben', 'gerade', 'nämlich', 'nämlich',
+  'solcher', 'selbst', 'selber', 'eben', 'gerade', 'nämlich',
   // Quantifiers
   'alle', 'alles', 'viel', 'viele', 'vieler', 'mehr', 'mehrere', 'wenig',
   'wenige', 'manch', 'manche', 'jeder', 'jede', 'jedes', 'nichts', 'etwas',
-  'irgend', 'irgendein', 'einige', 'mehrere', 'verschiedene', 'zahlreiche',
-  'viele', 'wenige', 'keine', 'alle', 'keiner', 'keines', 'niemand',
+  'irgend', 'irgendein', 'einige', 'verschiedene', 'zahlreiche', 'keine',
+  'keiner', 'keines', 'niemand',
   // Intensifiers/Fillers
   'auch', 'so', 'also', 'halt', 'mal', 'doch', 'eigentlich', 'tatsächlich',
-  'wirklich', 'sehr', 'ziemlich', 'gerade', 'eben', 'schon', 'noch', 'nur',
-  'allein', 'immer', 'nie', 'niemals', 'oft', 'manchmal', 'häufig', 'selten',
+  'wirklich', 'sehr', 'ziemlich', 'schon', 'nur', 'allein', 'immer',
+  'nie', 'niemals', 'oft', 'manchmal', 'häufig', 'selten',
   'vielleicht', 'wahrscheinlich', 'sicher', 'klar', 'natürlich', 'freilich',
   'übrigens', 'allerdings', 'jedoch', 'sonst', 'dann', 'jetzt', 'heute',
   'morgen', 'gestern', 'hier', 'dort', 'da', 'wohin', 'her', 'weg', 'hin',
   'ran', 'rum', 'herum', 'dabei', 'davon', 'darum', 'damit', 'dafür',
   'dagegen', 'dazu', 'daher', 'darüber', 'darunter', 'dazwischen', 'dran',
-  'drauf', 'drin', 'drüber', 'drunter', 'ja', 'nein', 'doch', 'eben',
+  'drauf', 'drin', 'drüber', 'drunter', 'ja', 'nein',
   // High-frequency verbs
-  'machen', 'macht', 'machen', 'sagen', 'sagt', 'sagte', 'geben', 'gibt', 'gab',
+  'machen', 'macht', 'sagen', 'sagt', 'sagte', 'geben', 'gibt', 'gab',
   'nehmen', 'nimmt', 'nahm', 'finden', 'findet', 'fand', 'wissen', 'weiß',
   'wusste', 'denken', 'denkt', 'dachte', 'sehen', 'sieht', 'sah', 'kommen',
   'kommt', 'kam', 'gehen', 'geht', 'ging', 'stehen', 'steht', 'liegen', 'liegt',
@@ -67,22 +65,15 @@ export const DE_BALANCED = [
   'spielt', 'spielte', 'schauen', 'schaut', 'schaute', 'schreiben', 'schreibt',
   'schrieb', 'lesen', 'liest', 'las', 'meinen', 'meint', 'meinte', 'glauben',
   'glaubt', 'glaubte', 'hoffen', 'hofft', 'hoffte', 'brauchen', 'braucht',
-  'brauchte', 'dürfen', 'darf', 'durfte', 'sollen', 'soll', 'sollte', 'müssen',
-  'muss', 'musste', 'können', 'kann', 'konnte', 'wollen', 'will', 'wollte',
-  'mögen', 'mag', 'mochte', 'kennen', 'kennt', 'kannte', 'heißen', 'heißt',
-  'hieß', 'heißen', 'heißen', 'heißen', 'sein', 'ist', 'war', 'sind', 'waren',
-  'haben', 'hat', 'habe', 'hatten', 'haben', 'haben', 'haben', 'haben', 'haben',
+  'brauchte', 'darf', 'durfte', 'soll', 'muss', 'mag', 'kennen', 'kennt',
+  'kannte', 'heißen', 'heißt', 'hieß',
 ];
 
-// Aggressive tier
+// Aggressive tier (deduplicated)
 export const DE_AGGRESSIVE = [
   ...DE_BALANCED,
   'ihnen', 'ihrer', 'seinen', 'deren', 'dessen', 'welcher', 'welche', 'wer',
-  'was', 'wo', 'wie', 'genau', 'schon', 'noch', 'nur', 'allein', 'immer',
-  'nie', 'niemals', 'oft', 'manchmal', 'häufig', 'selten', 'vielleicht',
-  'wahrscheinlich', 'sicher', 'klar', 'natürlich', 'freilich', 'übrigens',
-  'allerdings', 'jedoch', 'sonst', 'dann', 'jetzt', 'heute', 'morgen',
-  'gestern', 'hier', 'dort', 'da', 'wohin', 'her', 'gegen', 'während', 'seit',
+  'was', 'wo', 'wie', 'genau',
 ];
 
 export const DE_BLACKLIST = {

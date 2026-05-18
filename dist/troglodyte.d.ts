@@ -13,6 +13,7 @@ export declare class Troglodyte {
     private cachedBlacklists;
     private readonly MAX_COMPRESSIONS_BEFORE_RESET;
     private readonly MAX_CHARS_BEFORE_RESET;
+    private compiledPhrases;
     constructor(dictionaries: {
         phrases: Record<string, string>;
         blacklist: string[];

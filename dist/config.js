@@ -37,7 +37,7 @@ exports.configSchematics = (0, sdk_1.createConfigSchematics)()
     // Language settings
     .field("languageMode", "select", {
     displayName: "Language Mode",
-    hint: "Select the language for compression or enable auto-detection.",
+    hint: "Select the language for compression or enable auto-detection. Currently supports English and German only.",
     options: [
         { value: "auto", displayName: "🔍 Auto-Detect (EN/DE)" },
         { value: "en", displayName: "🇬🇧 English" },
