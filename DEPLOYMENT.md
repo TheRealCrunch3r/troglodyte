@@ -260,4 +260,5 @@ npm run dev
 
 ---
 
-*Last Updated: May 17, 2026*
+*Last Updated: May 24, 2026 — v1.1.2*
+

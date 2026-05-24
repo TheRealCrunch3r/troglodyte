@@ -1,11 +1,12 @@
 {
   "name": "troglodyte",
-  "version": "1.0.0",
+  "version": "1.1.2",
   "description": "Troglodyte - Reduce token usage by removing fluff and filler from prompts",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "dev": "lms dev",
+    "test": "npx ts-node src/tests/compression.test.ts",
     "package": "npm run build && node scripts/package.cjs",
     "install-plugin": "npm run build && node scripts/install.cjs"
   },
@@ -14,6 +15,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.19.19",
+    "ts-node": "^10.9.2",
     "typescript": "^6.0.3"
   },
   "lmstudio": {
