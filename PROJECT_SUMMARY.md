@@ -148,6 +148,42 @@ text = result
 
 ---
 
+## 🐛 Bugs Fixed (Session: May 24, 2026 — v1.1.0)
+
+### Critical: PUA Restoration Regex Broken
+**Problem:** The restoration regex `[-￿]` used literal display glyphs (CJK/box-drawing chars) instead of proper Unicode escapes. All protected items (URLs, paths, JSON, XML) were replaced with PUA placeholders but **never restored**, leaving garbage characters in output.
+
+**Fix:**
+```typescript
+// BEFORE (BROKEN)
+text = text.replace(/[-￿]/g, ...);
+
+// AFTER (FIXED)
+text = text.replace(/[\uE000-\uF8FF]/g, ...);
+```
+
+### Dead Synonym Entries (17 no-ops removed)
+**Problem:** English and German synonym dictionaries contained entries mapping words to themselves — zero compression benefit, wasted memory/CPU.
+
+**Fix:** Purged all no-op entries from `synonyms.ts`.
+
+### `detectTechnicalContext` Double-Call
+**Problem:** Smart Mode ran the technical detection function twice (3 regex passes × 2 = 6 passes).
+
+**Fix:** Cached result in `isTechnical` variable.
+
+### `extractUserInput` Edge Case
+**Problem:** System metadata marker at position 0 caused all user text to be discarded.
+
+**Fix:** Added safety fallback — if `userInput` is empty but `text` isn't, process full text.
+
+### Console Log Typo
+**Problem:** Template literal `${match.codePointAt(0)!-0xE000}` missing space → runtime error in warning.
+
+**Fix:** Added space: `${match.codePointAt(0)! - 0xE000}`
+
+---
+
 ## 🐛 Bugs Fixed (Session: May 18, 2026)
 
 ### Bug #6: `protectFilePaths` Config Field Unused

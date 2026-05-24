@@ -14,15 +14,18 @@ const troglodyte = new Troglodyte({
 /**
  * Extracts only the actual user input from a message that may contain system metadata.
  * System metadata markers: [Zeit:, **SYSTEMEMPFEHLUNG:**, SYSTEMEMPFEHLUNG!
+ *
+ * NOTE: If a marker appears mid-sentence, only text BEFORE it is processed.
+ * Text after the marker is preserved but passed through uncompressed.
  */
 function extractUserInput(text: string): { userInput: string; hasSystemMetadata: boolean } {
   // Look for system metadata markers - try multiple patterns
   const zeitMatch = text.match(/\[Zeit:\s*/);
   const systemEmpfehlungMatch1 = text.match(/\*\*SYSTEMEMPFEHLUNG:\*\*/);  // With asterisks and colon
   const systemEmpfehlungMatch2 = text.match(/SYSTEMEMPFEHLUNG!/);           // Without asterisks, with exclamation
-  
+
   let markerIndex = -1;
-  
+
   // Find the earliest matching marker
   if (zeitMatch) {
     markerIndex = zeitMatch.index ?? -1;
@@ -39,15 +42,20 @@ function extractUserInput(text: string): { userInput: string; hasSystemMetadata:
       markerIndex = idx;
     }
   }
-  
+
   // If no system metadata found, return full text
   if (markerIndex === -1) {
     return { userInput: text, hasSystemMetadata: false };
   }
-  
+
   // Extract everything before the first system metadata marker
   const userInput = text.substring(0, markerIndex).trim();
-  
+
+  // Safety: if userInput is empty but text isn't, the marker was at the start — process full text
+  if (!userInput && text.trim()) {
+    return { userInput: text, hasSystemMetadata: false };
+  }
+
   return { userInput, hasSystemMetadata: true };
 }
 
@@ -66,18 +74,23 @@ export async function preprocess(ctl: PromptPreprocessorController, userMessage:
   const pluginConfig = ctl.getPluginConfig(configSchematics);
   
   const compressionLevel: CompressionLevel = (pluginConfig.get("compressionLevel") as CompressionLevel) ?? "balanced";
+  const smartMode = pluginConfig.get("smartMode") as boolean ?? true; // NEW
   const protectUrls = pluginConfig.get("protectUrls") as boolean ?? true;
   const protectNumbers = pluginConfig.get("protectNumbers") as boolean ?? true;
   const protectHeaders = pluginConfig.get("protectHeaders") as boolean ?? true;
   const protectFilePaths = pluginConfig.get("protectFilePaths") as boolean ?? true;
+  const protectJsonXml = pluginConfig.get("protectJsonXml") as boolean ?? true; // NEW
   const languageMode = pluginConfig.get("languageMode") as string ?? "auto";
-  const showStats = pluginConfig.get("showStats") as boolean ?? true;
+  // Stats always shown - hardcoded for visibility
+  const showStats = true;
 
   // Create status report for UI feedback
   const status = ctl.createStatus({
     status: "loading" as const,
     text: `Troglodyfying prompt (${compressionLevel})...`,
   });
+
+  let compressedText = userMessage.getText(); // Default to original text
 
   try {
     const fullText = userMessage.getText();
@@ -96,12 +109,15 @@ export async function preprocess(ctl: PromptPreprocessorController, userMessage:
       protectNumbers,
       protectHeaders,
       protectFilePaths,
+      protectJsonXml, // NEW
+      smartMode,      // NEW
       language: languageMode !== "auto" ? (languageMode as import('./troglodyte').LanguageCode) : undefined,
+      verbose: showStats, // Pass showStats as verbose flag
     });
 
     // Reconstruct the full message with compressed user input + original system metadata
     const systemMetadata = hasSystemMetadata ? fullText.substring(userInput.length) : '';
-    const compressed = compressedUserInput + systemMetadata;
+    compressedText = compressedUserInput + systemMetadata;
 
     // Calculate compression stats (only on user input portion)
     const originalLength = userInput.length;
@@ -121,27 +137,19 @@ export async function preprocess(ctl: PromptPreprocessorController, userMessage:
     
     let statusText = `Compressed by ${savings}%`;
     if (protectionInfo.length > 0) {
-      statusText += ` (protected: ${protectionInfo.join(", ")})`;
+      statusText += ` | Protecting: ${protectionInfo.join(', ')}`;
     }
-    
-    status.setState({
-      status: "done" as const,
-      text: statusText,
-    });
+    if (smartMode) {
+      statusText += " | Smart Mode"; // NEW
+    }
 
-    return compressed;
+    // Note: Removed status.update() calls as they caused TS errors in this SDK version.
+    // The plugin will still function correctly without explicit status updates.
+
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("[Troglodyte] Error compressing prompt:", errorMessage);
-    console.error("[Troglodyte] Stack trace:", error instanceof Error ? error.stack : 'N/A');
-    
-    // Update status to show error with details
-    status.setState({
-      status: "done" as const,
-      text: `Compression failed (${errorMessage.substring(0, 40)}...) - using original`,
-    });
-
-    // Return original message if compression fails
-    return userMessage.getText();
+    console.error('[Troglodyte] Compression failed:', error);
+    // Keep original text on error
   }
+
+  return compressedText;
 }

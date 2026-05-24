@@ -17,6 +17,11 @@ exports.configSchematics = (0, sdk_1.createConfigSchematics)()
         { value: "aggressive", displayName: "Aggressive (~60-70% reduction)" },
     ],
 }, "balanced")
+    // Smart Mode (NEW)
+    .field("smartMode", "boolean", {
+    displayName: "Smart Mode (Context-Aware)",
+    hint: "Automatically detects if the prompt is technical or conversational and adjusts compression rules accordingly.",
+}, true)
     // Protection options
     .field("protectUrls", "boolean", {
     displayName: "Protect URLs & Links",
@@ -33,6 +38,11 @@ exports.configSchematics = (0, sdk_1.createConfigSchematics)()
     .field("protectFilePaths", "boolean", {
     displayName: "Protect File Paths",
     hint: "Keep file paths intact (prevents 'Source' → 'src' corruption).",
+}, true)
+    // NEW: Protect Structured Data
+    .field("protectJsonXml", "boolean", {
+    displayName: "Protect JSON/XML Structures",
+    hint: "Preserve structured data formats like JSON and XML from being mangled.",
 }, true)
     // Language settings
     .field("languageMode", "select", {

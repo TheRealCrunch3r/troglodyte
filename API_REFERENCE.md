@@ -88,7 +88,10 @@ compress(prompt: string, options?: {
   protectNumbers?: boolean;
   protectHeaders?: boolean;
   protectFilePaths?: boolean;
+  protectJsonXml?: boolean;
+  smartMode?: boolean;
   language?: LanguageCode;
+  verbose?: boolean;
 }): string
 ```
 
@@ -100,7 +103,11 @@ compress(prompt: string, options?: {
 | `protectUrls` | `boolean` | `true` | Preserve URLs intact |
 | `protectNumbers` | `boolean` | `true` | Preserve version numbers, IDs, UUIDs |
 | `protectHeaders` | `boolean` | `true` | Preserve markdown headers |
+| `protectFilePaths` | `boolean` | `true` | Preserve file paths (Windows, Unix, relative) |
+| `protectJsonXml` | `boolean` | `true` | Preserve JSON objects and XML structures |
+| `smartMode` | `boolean` | `true` | Auto-detect technical context, reduce synonym replacement for code |
 | `language` | `LanguageCode` | auto-detected | Force language (EN/DE) or auto-detect |
+| `verbose` | `boolean` | `false` | Enable detailed console logging |
 
 **Returns:** `string` — Compressed text
 
@@ -173,10 +180,12 @@ Defines the UI configuration exposed in LM Studio's plugin settings.
 ```typescript
 export const configSchematics = createConfigSchematics()
   .field("compressionLevel", "select", {...}, "balanced")
+  .field("smartMode", "boolean", {...}, true)
   .field("protectUrls", "boolean", {...}, true)
   .field("protectNumbers", "boolean", {...}, true)
   .field("protectHeaders", "boolean", {...}, true)
   .field("protectFilePaths", "boolean", {...}, true)
+  .field("protectJsonXml", "boolean", {...}, true)
   .field("languageMode", "select", {...}, "auto")
   .field("showStats", "boolean", {...}, true)
   .build();

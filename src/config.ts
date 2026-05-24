@@ -20,6 +20,16 @@ export const configSchematics = createConfigSchematics()
     },
     "balanced",
   )
+  // Smart Mode (NEW)
+  .field(
+    "smartMode",
+    "boolean",
+    {
+      displayName: "Smart Mode (Context-Aware)",
+      hint: "Automatically detects if the prompt is technical or conversational and adjusts compression rules accordingly.",
+    },
+    true,
+  )
   // Protection options
   .field(
     "protectUrls",
@@ -54,6 +64,16 @@ export const configSchematics = createConfigSchematics()
     {
       displayName: "Protect File Paths",
       hint: "Keep file paths intact (prevents 'Source' → 'src' corruption).",
+    },
+    true,
+  )
+  // NEW: Protect Structured Data
+  .field(
+    "protectJsonXml",
+    "boolean",
+    {
+      displayName: "Protect JSON/XML Structures",
+      hint: "Preserve structured data formats like JSON and XML from being mangled.",
     },
     true,
   )

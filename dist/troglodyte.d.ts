@@ -11,6 +11,7 @@ export declare class Troglodyte {
     private phrasesAndLogic;
     private synonyms;
     private cachedBlacklists;
+    private stats;
     private readonly MAX_COMPRESSIONS_BEFORE_RESET;
     private readonly MAX_CHARS_BEFORE_RESET;
     private compiledPhrases;
@@ -26,7 +27,10 @@ export declare class Troglodyte {
         protectNumbers?: boolean;
         protectHeaders?: boolean;
         protectFilePaths?: boolean;
+        protectJsonXml?: boolean;
         language?: LanguageCode;
+        smartMode?: boolean;
+        verbose?: boolean;
     }): string;
     getStats(): CompressionStats & {
         totalSavings: number;

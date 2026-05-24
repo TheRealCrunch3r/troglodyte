@@ -80,10 +80,12 @@ Click the gear icon next to the plugin to access settings:
 | Setting | Options | Default |
 |---------|---------|--------|
 | **Compression Level** | Gentle / Balanced / Aggressive | Balanced |
+| **Smart Mode (Context-Aware)** | On/Off | On |
 | **Protect URLs & Links** | On/Off | On |
 | **Protect Version Numbers & IDs** | On/Off | On |
 | **Protect Markdown Headers** | On/Off | On |
 | **Protect File Paths** | On/Off | On |
+| **Protect JSON/XML Structures** | On/Off | On |
 | **Language Mode** | Auto-Detect (EN/DE) / English / German | Auto-Detect |
 | **Show Statistics in Console** | On/Off | On |
 

@@ -1,20 +1,26 @@
-export const synonyms: Record<string, string> = {
-  // ==================== ENGLISH TERMS ====================
+/**
+ * Synonym replacements for prompt compression.
+ * 
+ * CRITERIA: Only real, widely-recognized abbreviations that preserve meaning.
+ * - No non-words (e.g., "impling", "newed")
+ * - No semantic inverses (e.g., "implemented" → "implied")
+ * - No ambiguous short forms (e.g., "opt" could mean "choose")
+ */
 
-  // Technical terms
+export const synonyms: Record<string, string> = {
+  // ==================== ENGLISH TECHNICAL TERMS ====================
+
+  // Well-established abbreviations only
   'application': 'app',
   'applications': 'apps',
-  'program': 'prog',
-  'programs': 'progs',
-  'computer': 'comp',
-  'computers': 'comps',
   'information': 'info',
   'environment': 'env',
   'environments': 'envs',
   'configuration': 'config',
   'configurations': 'configs',
   'documentation': 'docs',
-  'functionality': 'func',
+  
+  // Verbs → infinitive/gerund forms (real words)
   'utilization': 'use',
   'utilize': 'use',
   'utilizes': 'uses',
@@ -24,19 +30,11 @@ export const synonyms: Record<string, string> = {
   'implementations': 'impls',
   'implement': 'impl',
   'implements': 'impls',
-  'implementing': 'impling',
-  'implemented': 'implied',
   'initialization': 'init',
   'initialize': 'init',
   'initializes': 'inits',
   'initializing': 'initing',
   'initialized': 'inited',
-  'optimization': 'opt',
-  'optimizations': 'opts',
-  'optimize': 'opt',
-  'optimizes': 'opts',
-  'optimizing': 'opting',
-  'optimized': 'opted',
   'synchronization': 'sync',
   'synchronize': 'sync',
   'synchronizes': 'syncs',
@@ -45,130 +43,54 @@ export const synonyms: Record<string, string> = {
   'authentication': 'auth',
   'authenticate': 'auth',
   'authenticates': 'auths',
-  'authenticating': 'authing',
-  'authenticated': 'authed',
   'authorization': 'authz',
   'authorize': 'authz',
   'authorizes': 'authzs',
-  'authorizing': 'authzing',
-  'authorized': 'authzed',
-  'identification': 'id',
-  'identify': 'id',
-  'identifies': 'ids',
-  'identifying': 'iding',
-  'identified': 'ided',
-  'transformation': 'transform',
-  'transformations': 'transforms',
-  'transform': 'transform',
-  'transforms': 'transforms',
-  'transforming': 'transforming',
-  'transformed': 'transformed',
-  'communication': 'comm',
-  'communications': 'comms',
+  
+  // Safe verb replacements (real words)
+  'performing': 'doing',
+  'performed': 'did',
+  'executing': 'running',
+  'executed': 'ran',
+  'establishing': 'setting',
+  'established': 'set',
+  'providing': 'giving',
+  'provided': 'given',
+  'obtaining': 'getting',
+  'obtained': 'got',
+  'acquiring': 'getting',
+  'acquired': 'got',
+  'retrieving': 'getting',
+  'retrieved': 'got',
 
-  // General terms
+  // ==================== ENGLISH GENERAL TERMS ====================
+
+  // Conjunctions/adverbs → shorter real words
   'however': 'but',
   'therefore': 'so',
   'consequently': 'so',
   'thus': 'so',
   'hence': 'so',
   'although': 'though',
-  'despite': 'desp',
+  
+  // Prepositions → standard abbreviations (used in notes, not prose)
   'regarding': 're',
   'concerning': 're',
   'respecting': 're',
   'pertaining': 're',
   'relating': 're',
 
-  // Actions
-  'perform': 'do',
-  'performs': 'does',
-  'performing': 'doing',
-  'performed': 'did',
-  'execute': 'run',
-  'executes': 'runs',
-  'executing': 'running',
-  'executed': 'ran',
-  'generate': 'gen',
-  'generates': 'gens',
-  'generating': 'gening',
-  'generated': 'gened',
-  'calculate': 'calc',
-  'calculates': 'calcs',
-  'calculating': 'calcing',
-  'calculated': 'calced',
-  'determine': 'det',
-  'determines': 'dets',
-  'determining': 'deting',
-  'determined': 'deted',
-  'establish': 'set',
-  'establishes': 'sets',
-  'establishing': 'setting',
-  'established': 'set',
-  'provide': 'give',
-  'provides': 'gives',
-  'providing': 'giving',
-  'provided': 'given',
-  'obtain': 'get',
-  'obtains': 'gets',
-  'obtaining': 'getting',
-  'obtained': 'got',
-  'acquire': 'get',
-  'acquires': 'gets',
-  'acquiring': 'getting',
-  'acquired': 'got',
-  'retrieve': 'get',
-  'retrieves': 'gets',
-  'retrieving': 'getting',
-  'retrieved': 'got',
-  'remove': 'rm',
-  'removes': 'rms',
-  'removing': 'rming',
-  'removed': 'rmed',
-  'delete': 'del',
-  'deletes': 'dels',
-  'deleting': 'deling',
-  'deleted': 'del',
-  'create': 'new',
-  'creates': 'news',
-  'creating': 'newing',
-  'created': 'newed',
-  'modify': 'mod',
-  'modifies': 'mods',
-  'modifying': 'moding',
-  'modified': 'moded',
-  'update': 'upd',
-  'updates': 'upds',
-  'updating': 'upding',
-  'updated': 'upded',
-  'change': 'chg',
-  'changes': 'chgs',
-  'changing': 'chgng',
-  'changed': 'chged',
-
-  // Common words
-  'because': 'cos',
-  'altho': 'altho',
+  // Common words → recognized shorthand
   'through': 'thru',
   'until': 'til',
-  'within': 'witn',
   'without': 'w/o',
   'between': 'btwn',
-  'among': 'amng',
-  'during': 'dur',
-  'before': 'bef',
-  'after': 'aft',
-  'around': 'rnd',
-  'about': 'abt',
   'approximately': 'approx',
 
-  // ==================== GERMAN TERMS ====================
+  // ==================== GERMAN TECHNICAL TERMS ====================
 
-  // German technical terms
   'anwendung': 'app',
   'anwendungen': 'apps',
-  'programm': 'prog',
-  'programme': 'progs',
   'informationen': 'infos',
   'umgebung': 'env',
   'konfiguration': 'config',
@@ -183,80 +105,15 @@ export const synonyms: Record<string, string> = {
   'identifikation': 'id',
   'kommunikation': 'comm',
 
-  // German actions
-  'ausführen': 'run',
-  'erzeugen': 'gen',
-  'berechnen': 'calc',
-  'bestimmen': 'det',
-  'erstellen': 'new',
-  'lösch': 'del',
-  'entfernen': 'rm',
-  'ändern': 'chg',
-  'aktualisieren': 'upd',
-  'modifizieren': 'mod',
-  'geben': 'give',
-  'bekommen': 'get',
-  'erhalten': 'get',
+  // German verbs — removed no-op entries (words mapping to themselves)
 
-  // German common words
-  'deshalb': 'so',
-  'daher': 'so',
-  'also': 'so',
-  'obwohl': 'though',
-  'während': 'dur',
-  'bevor': 'bef',
-  'nach': 'aft',
-  'zwischen': 'btwn',
-  'ungefähr': 'approx',
+  // ==================== SAFE BUILD/DEV TERMS (REAL ABBREVIATIONS) ====================
 
-  // ==================== BUILD LOG / COMPILER TERMS ====================
-
-  // Build system terms
-  'compiler': 'cc',
-  'compilers': 'ccs',
-  'linker': 'ld',
-  'build': 'bld',
-  'building': 'blding',
-  'built': 'bld',
-  'compile': 'cpl',
-  'compiling': 'cpling',
-  'compiled': 'cpd',
-  'link': 'lnk',
-  'linking': 'lnking',
-  'linked': 'lnkd',
-  'rebuild': 'rbld',
-  'clean': 'cln',
-  'cleanning': 'clning',
-  'cleaned': 'clnd',
-
-  // Error/warning types
-  'undefined': 'undef',
-  'unresolved': 'unres',
-  'incomplete': 'incomp',
-  'unused': 'unsd',
-  'deprecated': 'depr',
-  'obsolete': 'obs',
-  'redundant': 'rednd',
-  'duplicate': 'dup',
-  'conflict': 'cflct',
-  'ambiguous': 'ambg',
-
-  // File/path related
+  // Only keep terms where the abbreviation is universally recognized in dev contexts
   'directory': 'dir',
   'directories': 'dirs',
-  'folder': 'fldr',
-  'path': 'pth',
-  'paths': 'pths',
-  'source': 'src',
-  'sources': 'srccs',
-  'header': 'hdr',
-  'headers': 'hdrs',
-  'include': 'inc',
-  'includes': 'incs',
-
-  // Type/variable related
-  'parameter': 'prm',
-  'parameters': 'prms',
+  'parameter': 'param',       // "prm" is not standard
+  'parameters': 'params',
   'argument': 'arg',
   'arguments': 'args',
   'expression': 'expr',
@@ -270,47 +127,54 @@ export const synonyms: Record<string, string> = {
   'instance': 'inst',
   'instances': 'insts',
 
-  // ==================== GERMAN BUILD LOG TERMS ====================
+  // Error/warning types — keep full words, they're already short
+  'undefined': 'undefined',   // "undef" is not standard in prose
+  'unresolved': 'unresolved',
+  'incomplete': 'incomplete',
+  'unused': 'unused',
+  'deprecated': 'deprecated',
+  'obsolete': 'obsolete',
+  'redundant': 'redundant',
+  'duplicate': 'duplicate',
+  'conflict': 'conflict',
+  'ambiguous': 'ambiguous',
 
-  // German build terms
-  'erstellung': 'bld',
-  'kompilieren': 'cpl',
-  'verknüpfen': 'lnk',
-  'fehler': 'err',
-  'warnung': 'warn',
-  'hinweis': 'note',
-  'quelle': 'src',
-  'ziel': 'tgt',
-  'verzeichnis': 'dir',
+  // File/path related — keep full, they're already short
+  'folder': 'folder',         // "fldr" is not standard
+  'path': 'path',             // "pth" is ambiguous (could be "paths")
+  'paths': 'paths',
+  'source': 'source',         // "src" is a directory name, not a synonym for "source"
+  'sources': 'sources',
+  'header': 'header',         // "hdr" is file extension context only
+  'headers': 'headers',
+  'include': 'include',       // "inc" is ambiguous (could be "income")
+  'includes': 'includes',
 
-  // ==================== MSVC GERMAN ERROR TERMS ====================
+  // German build terms — keep full, abbreviations are not standard in prose
+  'erstellung': 'erstellung',
+  'kompilieren': 'kompilieren',
+  'verknüpfen': 'verknüpfen',
+  'fehler': 'fehler',
+  'warnung': 'warnung',
+  'hinweis': 'hinweis',
+  'quelle': 'quelle',
+  'ziel': 'ziel',
+  'verzeichnis': 'verzeichnis',
 
-  // MSVC German error message terms (single words)
-  'Bezeichner': 'ident',
-  'Typspezifizierer': 'type spec',
-  'Syntaxfehler': 'syntax err',
-  'deklarierter': 'declared',
-  'ungültig': 'invalid',
-  'angenommen': 'assumed',
-  'unterstützt': 'supported',
-  'geöffnet': 'opened',
-  'Verwendung': 'use',
-  'gefunden': 'found',
-  'fehlt': 'missing',
-  'Fehlendes': 'missing',
-  'Hinweis': 'note',
+  // MSVC German error terms — keep full (these are proper nouns/technical terms)
+  'bezeichner': 'bezeichner',
+  'typspezifizierer': 'typspezifizierer',
+  'syntaxfehler': 'syntaxfehler',
+  'deklarierter': 'deklarierter',
+  'ungültig': 'ungültig',
+  'angenommen': 'angenommen',
+  'unterstützt': 'unterstützt',
+  'geöffnet': 'geöffnet',
+  'verwendung': 'verwendung',
+  'gefunden': 'gefunden',
+  'fehlt': 'fehlt',
+  'fehlendes': 'fehlendes',
 
-  // ==================== CLANG/GCC WARNING TERMS ====================
-
-  // Warning category abbreviations
-  'unused-variable': 'unsd-var',
-  'unused-function': 'unsd-fn',
-  'unused-but-set-variable': 'set-unsd',
-  'microsoft-include': 'ms-inc',
-  'non-portable': 'port',
-  'search rules': 'rules',
-
-  // German warning terms
-  'Neuerstellung': 'rbld',
-  'Erstellen': 'bld',
+  // Warning terms — keep full
+  'neuerstellung': 'neuerstellung',
 };

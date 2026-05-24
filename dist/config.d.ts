@@ -9,6 +9,12 @@ export declare const configSchematics: import("@lmstudio/sdk").ConfigSchematics<
         valueTypeKey: "select";
     };
 } & {
+    smartMode: {
+        key: "smartMode";
+        type: boolean;
+        valueTypeKey: "boolean";
+    };
+} & {
     protectUrls: {
         key: "protectUrls";
         type: boolean;
@@ -29,6 +35,12 @@ export declare const configSchematics: import("@lmstudio/sdk").ConfigSchematics<
 } & {
     protectFilePaths: {
         key: "protectFilePaths";
+        type: boolean;
+        valueTypeKey: "boolean";
+    };
+} & {
+    protectJsonXml: {
+        key: "protectJsonXml";
         type: boolean;
         valueTypeKey: "boolean";
     };

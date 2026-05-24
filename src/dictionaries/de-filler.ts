@@ -31,7 +31,7 @@ export const DE_BALANCED = [
   'jenseits', 'knap', 'nördlich', 'östlich', 'südlich', 'westlich', 'ab',
   // Conjunctions
   'und', 'oder', 'aber', 'denn', 'sondern', 'weil', 'da', 'obwohl', 'wenn',
-  'falls', 'damit', 'bevor', 'nachdem', 'sobald', 'als', 'wie', 'dass', 'ob',
+  'falls', 'bevor', 'nachdem', 'sobald', 'als', 'wie', 'dass', 'ob',
   'entweder', 'noch', 'sowohl', 'weder',
   // Demonstratives
   'dieser', 'diese', 'dieses', 'diesem', 'diesen', 'jener', 'jene', 'solch',

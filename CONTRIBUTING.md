@@ -12,6 +12,7 @@ Thank you for your interest in contributing! This document provides guidelines a
 - LM Studio (latest version)
 - Code editor (VS Code recommended)
 - **TypeScript 6.x** (auto-installed via npm)
+- **ts-node** (devDependency for testing)
 
 ### Setup
 ```bash
@@ -127,6 +128,7 @@ export const synonyms: Record<string, string> = {
 **Rules:**
 - Lowercase keys only (matching is case-insensitive)
 - Avoid abbreviations that could corrupt file paths (`source` → `src` ❌)
+- **Never map a word to itself** — no-op entries waste memory and CPU (17 were removed in v1.1.0)
 
 ---
 
