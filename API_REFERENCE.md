@@ -111,6 +111,10 @@ compress(prompt: string, options?: {
 
 **Returns:** `string` — Compressed text
 
+**Performance Notes:**
+- XML/JSON protection now uses O(n) single-pass depth tracking instead of O(n²) nested regex, preventing UI freezes on large structured data.
+- Language detection is optimized to scan only the first 1000 characters, reducing CPU overhead for long prompts without sacrificing accuracy.
+
 ---
 
 #### Method: `getStats()`
@@ -349,4 +353,4 @@ MIT
 
 ---
 
-*Last Updated: May 17, 2026*
+*Last Updated: May 31, 2026*

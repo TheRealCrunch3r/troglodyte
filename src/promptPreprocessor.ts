@@ -87,7 +87,7 @@ export async function preprocess(ctl: PromptPreprocessorController, userMessage:
   // Create status report for UI feedback
   const status = ctl.createStatus({
     status: "loading" as const,
-    text: `Troglodyfying prompt (${compressionLevel})...`,
+    text: `Compressing prompt (${compressionLevel})...`,
   });
 
   let compressedText = userMessage.getText(); // Default to original text
@@ -143,8 +143,11 @@ export async function preprocess(ctl: PromptPreprocessorController, userMessage:
       statusText += " | Smart Mode"; // NEW
     }
 
-    // Note: Removed status.update() calls as they caused TS errors in this SDK version.
-    // The plugin will still function correctly without explicit status updates.
+    // Update status with compression rate
+    status.setState({
+      status: "done",
+      text: `Compressed by ${savings}%`,
+    });
 
   } catch (error) {
     console.error('[Troglodyte] Compression failed:', error);

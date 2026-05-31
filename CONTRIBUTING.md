@@ -53,7 +53,7 @@ troglodyte/
 │       └── synonyms.ts       # Single-word abbreviations
 ├── dist/                     # Compiled output (generated)
 ├── package.json              # Dependencies and scripts
-├── tsconfig.json             # TypeScript configuration
+├── tsconfig.json             # TypeScript configuration (incremental & isolatedModules enabled)
 └── README.md                 # User documentation
 ```
 
@@ -292,4 +292,4 @@ By contributing, you agree that your contributions will be licensed under the MI
 
 ---
 
-*Last Updated: May 17, 2026*
+*Last Updated: May 31, 2026*

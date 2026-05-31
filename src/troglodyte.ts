@@ -81,7 +81,11 @@ const NEUTRAL_WORDS = new Set([
  * Returns 'en' as default if text is too short or signal is weak.
  */
 function detectLanguage(text: string): LanguageCode {
-  const words = text.toLowerCase().match(/\b[a-zäöüß]{3,}\b/g) || [];
+  // OPTIMIZATION: Limit scan to first 1000 chars. Language signal is strongest at the start.
+  const scanLimit = Math.min(text.length, 1000);
+  const snippet = text.substring(0, scanLimit).toLowerCase();
+  
+  const words = snippet.match(/\b[a-zäöüß]{3,}\b/g) || [];
   
   // Need minimum signal to make a decision
   if (words.length < 5) return 'en';
@@ -113,13 +117,21 @@ function detectLanguage(text: string): LanguageCode {
  * Returns true if technical, false if conversational.
  */
 function detectTechnicalContext(text: string): boolean {
-  // Count code-like tokens vs natural language tokens
-  const codePatterns = [/\{[^}]+\}/g, /<[^>]+>/g, /\b(?:const|let|var|function|class|import|export)\b/g];
+  // FIXED: Single-pass tokenization to avoid double-counting overlapping patterns
+  const codeKeywords = /\b(?:const|let|var|function|class|import|export)\b/g;
+  const codeBraces = /[{]/g;
+  
   let codeScore = 0;
   
-  for (const pattern of codePatterns) {
-    const matches = text.match(pattern);
-    if (matches) codeScore += matches.length;
+  // Count code keywords
+  let match: RegExpExecArray | null;
+  while ((match = codeKeywords.exec(text)) !== null) {
+    codeScore++;
+  }
+  
+  // Count opening braces (common in code objects/arrays)
+  while ((match = codeBraces.exec(text)) !== null) {
+    codeScore++;
   }
   
   // If more than 10% of tokens are code-like, consider it technical
@@ -146,6 +158,10 @@ export class Troglodyte {
   
   // Pre-sorted phrases with pre-compiled regexes (PERFORMANCE FIX)
   private compiledPhrases: CompiledPhrase[];
+  
+  // BATCHED REGEX OPTIMIZATION (pre-built in constructor)
+  private batchedRegex: RegExp | null = null;
+  private replacementMap: Map<string, string | undefined> | null = null;
 
   constructor(dictionaries: {
     phrases: Record<string, string>;
@@ -162,9 +178,23 @@ export class Troglodyte {
       .sort((a, b) => b[0].length - a[0].length)
       .map(([phrase, replacement]) => ({
         phrase,
+    
         replacement,
         regex: new RegExp(`(?<![${wordChar}])${this.escapeRegex(phrase)}(?![${wordChar}])`, 'gi')
       }));
+    
+    // BUILD BATCHED REGEX (one-time cost in constructor)
+    // This enables O(n) phrase replacement instead of O(n × m)
+    if (this.compiledPhrases.length > 0) {
+      const escapedPhrases = this.compiledPhrases
+        .map(({ phrase }) => phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+        .sort((a, b) => b.length - a.length); // Longest first for greedy matching
+      
+      const combinedPattern = `(?:${escapedPhrases.join('|')})`;
+      this.batchedRegex = new RegExp(`(?<![${wordChar}])${combinedPattern}(?![${wordChar}])`, 'gi');
+      
+      this.replacementMap = new Map(this.compiledPhrases.map(({ phrase, replacement }) => [phrase, replacement]));
+    }
     
     this.cachedBlacklists = new Map();
     for (const langCode of SUPPORTED_LANGUAGES) {
@@ -184,12 +214,8 @@ export class Troglodyte {
   }
 
   private escapeRegex(str: string): string {
-    const specialChars = ['\\', '^', '$', '*', '+', '?', '(', ')', '.', '{', '}', '|', '[', ']', '/'];
-    let result = str;
-    for (const ch of specialChars) {
-      result = result.split(ch).join('\\' + ch);
-    }
-    return result;
+    // FIXED: Single-pass regex replacement to avoid cascading double-escaping
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
   compress(prompt: string, options?: { 
@@ -312,73 +338,51 @@ export class Troglodyte {
       text = text.replace(/([A-Za-z]:[\/\\][^<>"|?*\r\n]{10,})(?=[\s.,;:!?)\]]|$)/g, protectIfWorthwhile);
       
       // Relative paths with ./ or ../ - match complete path including extension
-      text = text.replace(/(\.\.?[\/\\][^\s<>"|?*]+)(?=[\s.,;:!?)\]]|$)/g, protectIfWorthwhile);
+      text = text.replace(/(\.\.?[/\\][^\s<>"|?*]+)(?=[\s.,;:!?)\]]|$)/g, protectIfWorthwhile);
       
       // Linux/macOS absolute paths (/path/to/file) - match complete path including extension
       text = text.replace(/(\/[^\s<>"|?*]{10,})(?=[\s.,;:!?)\]]|$)/g, protectIfWorthwhile);
       
       // Home directories (~/file.ext)
-      text = text.replace(/(~[\/\\][^\s<>"|?*]+)(?=[\s.,;:!?)\]]|$)/g, protectIfWorthwhile);
+      text = text.replace(/(~[/\\][^\s<>"|?*]+)(?=[\s.,;:!?)\]]|$)/g, protectIfWorthwhile);
     }
 
     // 6. NEW: Protect JSON/XML structures
     if (protectJsonXml) {
       text = text.replace(/(\{[^{}]*\})/g, (match) => protectIfWorthwhile(match, 10)); // Simple JSON
       
-      // XML Protection - find ONLY outermost complete <tag>...</tag> structures
+      // XML Protection - OPTIMIZED: Single-pass depth counter (O(n) instead of O(n²))
       const findOutermostXml = (input: string): { start: number; end: number }[] => {
         const results: { start: number; end: number }[] = [];
         const tagRegex = /<(\/?)([a-zA-Z][a-zA-Z0-9]*)([^>]*?)>/g;
         let match: RegExpExecArray | null;
-        
+        let depth = 0;
+        let lastOpenTagStart = -1;
+
         while ((match = tagRegex.exec(input)) !== null) {
           const isClosing = match[1] === '/';
-          const startPos = match.index;
           const fullTag = match[0];
           
-          // Skip closing tags and self-closing tags
-          if (isClosing || fullTag.endsWith('/>')) continue;
-          
-          // SKIP: If this opening tag is inside an already-found structure, skip it
-          // This ensures we only protect outermost structures
-          const isInsideExisting = results.some(r => startPos > r.start && startPos < r.end);
-          if (isInsideExisting) continue;
-          
-          // Track nesting depth - ANY opening tag increases, ANY closing tag decreases
-          let depth = 1;
-          let searchPos = startPos + fullTag.length;
-          let endPos = -1;
-          
-          const innerRegex = /<(\/?)([a-zA-Z][a-zA-Z0-9]*)([^>]*?)>/g;
-          let innerMatch: RegExpExecArray | null;
-          
-          while (depth > 0 && (innerMatch = innerRegex.exec(input)) !== null) {
-            if (innerMatch.index < searchPos) { innerRegex.lastIndex = searchPos; continue; }
-            
-            const innerIsClosing = innerMatch[1] === '/';
-            const innerFullTag = innerMatch[0];
-            
-            if (innerFullTag.endsWith('/>')) {
-              // Self-closing tag - doesn't affect depth
-            } else if (innerIsClosing) {
-              depth--;  // ANY closing tag decreases depth
-              if (depth === 0) {
-                endPos = innerMatch.index + innerFullTag.length;
-              }
-            } else {
-              depth++;  // ANY opening tag increases depth
+          if (fullTag.endsWith('/>')) continue; // Self-closing doesn't affect depth
+
+          if (isClosing) {
+            if (depth === 0) {
+              // Orphan closing tag, ignore
+              continue;
             }
-            
-            searchPos = innerMatch.index + innerFullTag.length;
-          }
-          
-          if (endPos > 0) {
-            results.push({ start: startPos, end: endPos });
+            depth--;
+            if (depth === 0) {
+              results.push({ start: lastOpenTagStart, end: match.index + fullTag.length });
+            }
+          } else {
+            if (depth === 0) {
+              lastOpenTagStart = match.index;
+            }
+            depth++;
           }
         }
         return results;
       };
-      
       const xmlStructures = findOutermostXml(text);
       // Protect from end to start to preserve indices
       for (let i = xmlStructures.length - 1; i >= 0; i--) {
@@ -395,35 +399,45 @@ export class Troglodyte {
     let phraseMatches = 0;
     let phraseCharsSaved = 0;
 
-    // Use pre-compiled phrases from constructor (PERFORMANCE FIX - no regex compilation per call)
-    for (const { phrase, replacement, regex } of this.compiledPhrases) {
-      // Single-pass replacement with counting to improve performance
-      text = text.replace(regex, (match) => {
-        const saved = match.length - (replacement?.length || 0);
+    // Use pre-built batched regex (O(n) instead of O(n × m))
+    if (this.batchedRegex && this.replacementMap) {
+      text = text.replace(this.batchedRegex, (match) => {
+        const repl = this.replacementMap!.get(match);
+        const saved = match.length - (repl?.length || 0);
         phraseMatches++;
         phraseCharsSaved += saved;
-        
-        return replacement && replacement.trim() !== '' ? replacement : ' ';
+        return repl && repl.trim() !== '' ? repl : ' ';
       });
     }
 
+
+
     // ==================== WORD FILTERING PHASE ====================
     
-    // Split into words while preserving punctuation and spacing
-    // FIX: Include '.' in word pattern to keep "Node.js", "v1.0.0" intact
-	const wordPattern = /[-a-zA-Z0-9_.'ßäöüÄÖÜ]+/g;
-    const tokens = text.split(wordPattern);
-    const words = text.match(wordPattern) || [];
+    // FIXED: Single-pass tokenization to avoid split/match misalignment when words are filtered out.
+    // Also preserve trailing punctuation (? !) through the entire pipeline so questions stay questions.
+    const wordPattern = /[-a-zA-Z0-9_.'ßäöüÄÖÜ]+/g;
+    
+    // Extract trailing punctuation that should be preserved (questions/exclamations)
+    let trailingPunct = '';
+    const trailingMatch = text.match(/([?.!]+)\s*$/);
+    if (trailingMatch && trailingMatch[1].length > 0) {
+      trailingPunct = trailingMatch[1];
+      text = text.substring(0, text.length - trailingMatch[0].length); // Remove trailing punct from processing
+    }
+    
+    const allWords = text.match(wordPattern) || [];
     
     if (debug) {
-      console.log(`[Troglodyte] Found ${words.length} words in ${tokens.length} token slots`);
+      console.log(`[Troglodyte] Found ${allWords.length} words for filtering`);
     }
 
     let filteredCount = 0;
     let synonymCount = 0;
-    const filteredWords: string[] = [];
+    const keptWords: string[] = [];
     
-    for (const word of words) {
+    // Filter words in-place (no interleaving with delimiters)
+    for (const word of allWords) {
       const lower = word.toLowerCase();
       
       // Check blacklist first
@@ -435,40 +449,49 @@ export class Troglodyte {
       // Apply synonym replacement (respects Smart Mode)
       if (synonymReplacementEnabled && this.synonyms[lower]) {
         synonymCount++;
-        filteredWords.push(this.synonyms[lower]);
+        keptWords.push(this.synonyms[lower]);
         continue;
       }
       
       // Keep original word
-      filteredWords.push(word);
+      keptWords.push(word);
     }
 
     if (debug) {
       console.log(`[Troglodyte] Blacklist: ${levelBlacklist.size} words, Filtered: ${filteredCount}, Synonyms: ${synonymCount}`);
     }
 
-    // Reconstruct text by interleaving tokens (delimiters) and filtered words
-    // PERFORMANCE FIX: Use array join instead of string concatenation (O(n²) → O(n))
-    const parts: string[] = [];
-    let wordIndex = 0;
+    // Reconstruct text by interleaving delimiters with kept words correctly.
+    // Split gives us delimiters (spaces, punctuation), and we interleave only the KEPT words.
+    const tokens = text.split(wordPattern);  // Delimiters between words
+    
+    const finalParts: string[] = [];
+    let wordIdx = 0;
     
     for (const token of tokens) {
-      parts.push(token); // Add delimiter/punctuation
-      if (wordIndex < filteredWords.length) {
-        parts.push(filteredWords[wordIndex++]); // Add next kept word
+      finalParts.push(token); // Add delimiter/punctuation
+      
+      if (wordIdx < keptWords.length) {
+        finalParts.push(keptWords[wordIdx++]); // Add next KEPT word only
       }
     }
 
     // Clean up whitespace and punctuation artifacts
-    text = parts.join('')
-      .replace(/\s+/g, ' ')                           // 1. Collapse multiple spaces to one
-      .replace(/\s+([.,?!;:])/g, '$1')                // 2. Remove space BEFORE punctuation
-      .replace(/^([.,?!;:]\s*)+/g, '')                // 3. Remove leading orphaned punctuation + spaces
-      .replace(/([.,?!;:]\s*)+$/g, '')                // 4. Remove trailing orphaned punctuation + spaces
-      .replace(/\s+([.,?!;:])\s+/g, ' ')              // 5. Remove standalone punctuation surrounded by spaces
-      .replace(/([.,?!;:]){2,}/g, '$1')               // 6. Collapse consecutive punctuation to one
-      .replace(/([.?!;:])(?=[A-ZßÄÖÜ])/g, '$1 ')      // 7. Add space AFTER sentence-ending punct (before CAPITAL)
+    text = finalParts.join('')
+      .replace(/\s+/g, ' ')                           // 1. Collapse multiple spaces to one (MUST be first)
+      .replace(/([.,?!;:])(?=[A-ZßÄÖÜ])/g, '$1 ')      // 2. Add space AFTER sentence-ending punct (before CAPITAL)
       .trim();
+
+    // Remove orphaned punctuation that survived filtering (preserve ? and ! at end)
+    text = text
+      .replace(/\s+([.,?!;:])/g, '$1')                // 3. Remove space BEFORE punctuation
+      .replace(/^([.,?!;:]|\s)+/g, '')                // 4. Remove leading punctuation/spaces
+      .replace(/([.,;:])\s*$/g, '');                  // 5. Remove trailing . , ; : but KEEP ? and ! at end
+    
+    // Re-add preserved trailing punctuation (questions/exclamations)
+    if (trailingPunct) {
+      text = text + trailingPunct;
+    }
 
     // ==================== RESTORATION PHASE ====================
     if (debug) {

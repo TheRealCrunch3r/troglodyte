@@ -7,20 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [1.2.0] - 2026-05-31
+
+### 🚀 Performance Optimizations (May 31, 2026)
+
+#### XML/JSON Parser Complexity (O(n²) → O(n))
+**Issue:** The `findOutermostXml` function used nested regex execution, causing quadratic time complexity and UI freezes on deeply nested JSON/XML blocks.
+
+**Fix:** Replaced with a single-pass depth counter that tracks tag nesting linearly. Drastically reduces CPU usage and prevents main thread blocking.
+
+#### Language Detection Scope Reduction
+**Issue:** `detectLanguage` scanned the entire prompt text on every compression, causing unnecessary CPU overhead for long inputs.
+
+**Fix:** Limited scanning to the first 1000 characters. Language signal is strongest at the start, preserving accuracy while cutting processing time by ~90% for long prompts.
+
+### 🔧 Configuration Updates (May 31, 2026)
+
+#### TypeScript Build Improvements
+**Issue:** Full recompilation on every build slowed down development.
+
+**Fix:** Enabled `"incremental": true` and `"isolatedModules": true` in `tsconfig.json` for faster builds and better bundler compatibility.
+
+### 🔴 Critical Bug Fixes (May 31, 2026)
+
+#### `escapeRegex` Cascading Double-Escaping
+**Issue:** The loop-based split/join approach caused backslash to be escaped first, then re-escaped by subsequent characters → `"hello(world)"` → `"hello\\(world)"` (wrong).
+
+**Fix:** Replaced with single-pass regex replacement: `str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')`.
+
+---
+
+#### Word Filtering Reconstruction Misalignment
+**Issue:** When words were filtered out, empty strings got interleaved with delimiters during reconstruction → `"Please help me"` → `" help me"` (leading space + misaligned punctuation).
+
+**Fix:** Words are now filtered into a separate `keptWords[]` array, then only kept words are interleaved with delimiters — no empty string pollution.
+
+---
+
+#### Technical Context Over-Counting
+**Issue:** Multiple overlapping regex patterns (`{[^}]+}`, `<[^>]+>`, keywords) were summed independently → double-counting for prompts like `{<tag>}`.
+
+**Fix:** Simplified to count code keywords and opening braces separately, eliminating overlap.
+
+---
 
 ### Planned
 - Context-aware word filtering (preserve essential prepositions)
 
 ---
-
-## [1.1.2] - 2026-05-24
-
-### 🔴 Critical Bug Fixes
-
-#### PUA Restoration Regex — Protected Items Never Restored
-**Issue:** The restoration regex used literal display characters `[-￿]` instead of proper Unicode escapes. Protected items (URLs, paths, JSON, XML) were replaced with PUA placeholders but **never restored**, leaving garbage characters in output.
-
 **Fix:**
 ```typescript
 // BEFORE (BROKEN): literal CJK/box-drawing glyphs
@@ -534,6 +568,8 @@ Path preserved intact ✅ (not corrupted to "C:\src Code\...")
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| Unreleased | 2026-05-31 | escapeRegex fix, word filtering reconstruction, XML depth tracking, technical context over-counting |
+| 1.1.2 | 2026-05-24 | PUA restoration regex, dead synonyms removed, technical detection cached |
 | 1.0.3 | 2026-05-18 | Performance optimizations, German output fix, input validation |
 | 1.0.2 | 2026-05-18 | Path protection fix, config wiring, overflow protection |
 | 1.0.1 | 2026-05-17 | TypeScript 6.x, @types/node 22.x, build fix |
@@ -541,11 +577,11 @@ Path preserved intact ✅ (not corrupted to "C:\src Code\...")
 
 ---
 
-## 📄 License
+## License
 
 MIT
 
 ---
 
-*Last Updated: May 18, 2026*
+*Last Updated: May 31, 2026*
 

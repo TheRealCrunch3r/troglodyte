@@ -251,7 +251,7 @@ export const phrases: Record<string, string> = {
   'successful': 'ok',
   'errors': 'err',
   'warnings': 'warn',
-  'up to date': 'uptodate',
+  'up to date': 'updated',
   'skipped': 'skip',
 
   // Time/duration boilerplate

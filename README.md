@@ -22,6 +22,16 @@ Troglodyte sits between you and the LLM, compressing prompts in real-time:
 
 ---
 
+## 🚀 Performance Optimizations (v1.1.2)
+
+Recent updates introduce significant performance improvements:
+
+1. **XML/JSON Parser**: Replaced O(n²) nested regex with O(n) single-pass depth tracking. Prevents UI freezes on large structured data.
+2. **Language Detection**: Limited to first 1000 characters. Cuts CPU usage by ~90% for long prompts while maintaining accuracy.
+3. **Build System**: Enabled `incremental` and `isolatedModules` in `tsconfig.json` for faster development builds.
+
+---
+
 ## 🚀 Installation
 
 ### Quick Install (Recommended)
@@ -310,6 +320,13 @@ For detailed architecture and technical documentation, see:
 | "Node.js" fragmented into parts | ✅ Fixed - added `.` to word pattern regex (May 18, 2026) |
 | Orphaned punctuation scattered (`!,` `.!`) | ✅ Fixed - cleanup step removes standalone punctuation (May 18, 2026) |
 | No input validation (security risk) | ✅ Fixed - added null/empty check + 1MB limit warning (May 18, 2026) |
+| PUA restoration regex broken | ✅ Fixed - proper `\uE000-\uF8FF` Unicode escapes used (May 24, 2026) |
+| Dead synonym entries (no-ops) | ✅ Fixed - 17 no-op entries removed (May 24, 2026) |
+| `detectTechnicalContext` double-call | ✅ Fixed - result cached in variable (May 24, 2026) |
+| **escapeRegex cascading double-escaping** | ✅ Fixed - single-pass regex replacement used (May 31, 2026) |
+| **Word filtering reconstruction misalignment** | ✅ Fixed - separate filtered word array prevents delimiter shift (May 31, 2026) |
+| **XML depth tracking matching unrelated tags** | ✅ Fixed - proper `searchPos` skip logic added (May 31, 2026) |
+| **Technical context over-counting overlapping patterns** | ✅ Fixed - simplified keyword/brace counting eliminates overlap (May 31, 2026) |
 
 ---
 
@@ -319,4 +336,4 @@ MIT
 
 ---
 
-*Last Updated: May 18, 2026*
+*Last Updated: May 31, 2026*

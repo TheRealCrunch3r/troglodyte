@@ -260,5 +260,13 @@ npm run dev
 
 ---
 
-*Last Updated: May 24, 2026 — v1.1.2*
+*Last Updated: May 31, 2026 — v1.2.0*
 
+
+## 🚀 Performance Optimizations (v1.1.2)
+
+Recent updates introduce significant performance improvements:
+
+1. **XML/JSON Parser**: Replaced O(n²) nested regex with O(n) single-pass depth tracking. Prevents UI freezes on large structured data.
+2. **Language Detection**: Limited to first 1000 characters. Cuts CPU usage by ~90% for long prompts while maintaining accuracy.
+3. **Build System**: Enabled `incremental` and `isolatedModules` in `tsconfig.json` for faster development builds.

@@ -122,7 +122,23 @@
 "~/home/dir/config.json"
 // ✅ Expected: "~/home/dir/config.json"
 
-// Test 10d: Windows path with spaces
+// Test 10d: Windows path with extension
+"C:\\Source Code\\troglodyte\\src\\troglodyte.ts"
+// ✅ Expected: "C:\\Source Code\\troglodyte\\src\\troglodyte.ts"
+
+// ============================================================
+// TEST 11: Large JSON/XML Structure (Performance Test)
+// Verifies the O(n) XML parser handles deep nesting without freezing
+// ============================================================
+"Here is a complex JSON structure: { \"data\": { \"nested\": { \"deeply\": { \"value\": \"important\" } } } }. Please analyze it carefully."
+// ✅ Expected: JSON structure preserved intact, no UI freeze during compression.
+
+// ============================================================
+// TEST 12: Long Prompt Language Detection
+// Verifies language detection works within the first 1000 chars
+// ============================================================
+"Hallo! Ich würde mich sehr freuen, wenn du mir bei dieser Aufgabe helfen könntest, bitte und danke! " + " ".repeat(1200) + " Erkläre mir bitte Schritt für Schritt, wie man Node.js unter Windows installiert. Vielen Dank!"
+// ✅ Expected: Detected as German, compression applied correctly.th spaces
 "D:\\Projects\\My App\\source\\main.ts"
 // ✅ Expected: "D:\\Projects\\My App\\source\\main.ts"
 
@@ -168,3 +184,139 @@
 // ✅ No crashes on edge cases (empty input, single chars)
 // ✅ German language support working
 // ✅ Compression ratios match expected ranges
+
+// ============================================================
+// TEST 11: Word Filtering Reconstruction (May 31, 2026 Fix)
+// This tests the fix for empty strings shifting delimiters during reconstruction
+// Expected: No leading spaces or misaligned punctuation
+// ============================================================
+"Please help me with this task. Thank you!"
+
+// ✅ CORRECT output (after May 31 fix):
+// "help task."
+
+// ❌ WRONG (old buggy behavior before fix):
+// " help task."  ← leading space from empty string interleaving
+
+
+---
+
+// ============================================================
+// TEST 12: XML Structure Protection (May 31, 2026 Fix)
+// This tests the fix for XML depth tracking matching unrelated tags
+// Expected: Only outermost complete <tag>...</tag> structures are protected
+// ============================================================
+"The <root><child>text</child></root> is valid and <other>nested</other> too."
+
+// ✅ CORRECT output (after May 31 fix):
+// "The [PUA] is valid and [PUA] too."
+// Where [PUA] represents the protected XML structures
+
+
+---
+
+// ============================================================
+// TEST 13: Technical Context Detection (May 31, 2026 Fix)
+// This tests the fix for over-counting overlapping code patterns
+// Expected: Code-heavy prompts are correctly identified as technical
+// ============================================================
+"const config = { fileSystem: true }; function add(a, b) { return a + b; }"
+
+// ✅ CORRECT output (after May 31 fix):
+// Technical context detected → synonym replacement disabled
+
+
+---
+
+// ============================================================
+// TEST 14: escapeRegex Edge Cases (May 31, 2026 Fix)
+// This tests that phrase replacements with special characters work correctly
+// Expected: No double-escaping of regex metacharacters in phrases
+// ============================================================
+"Hello there! I was wondering if you could possibly help me out?"
+
+// ✅ CORRECT output (after May 31 fix):
+// "possibly help me out?"
+
+
+---
+
+// ============================================================
+// TEST 15: Mixed Protected Elements with Reconstruction Fix
+// Combined test: URLs, paths, versions, AND proper word filtering
+// Expected: All protections work together without reconstruction bugs
+// ============================================================
+"Please check https://example.com/path?id=123 and C:\\Source Code\\Project for issues. Thank you!"
+
+// ✅ CORRECT output (after May 31 fix):
+// "check https://example.com/path?id=123 C:\\Source Code\\Project issues."
+
+
+---
+
+// ============================================================
+// TEST 16: German Word Filtering Reconstruction
+// Tests that German word filtering doesn't cause reconstruction issues
+// Expected: Clean output without orphaned punctuation or spaces
+// ============================================================
+"Hallo! Ich würde mich sehr freuen, wenn du mir bei dieser Aufgabe helfen könntest, bitte und danke!"
+
+// ✅ CORRECT output (after May 31 fix):
+// "würde freuen Aufgabe helfen könntest"
+
+
+---
+
+// ============================================================
+// TEST 17: Edge Case - All Words Filtered Out
+// Tests that reconstruction handles edge case where all words are filtered
+// Expected: Returns empty or minimal output without errors
+// ============================================================
+"Please thank you hello goodbye"
+
+// ✅ CORRECT output (after May 31 fix):
+// "" (empty)
+
+
+---
+
+// ============================================================
+// TEST 18: Edge Case - No Words Filtered Out
+// Tests that reconstruction handles case where no words are filtered
+// Expected: Original text preserved with minimal cleanup
+// ============================================================
+"Hello world this is a test"
+
+// ✅ CORRECT output (after May 31 fix):
+// "world test"
+
+
+---
+
+// ============================================================
+// TEST 19: XML Nested Structures
+// Tests that nested XML structures are correctly identified as outermost
+// Expected: Only the outermost complete structure is protected
+// ============================================================
+"The <outer><inner>text</inner></outer> and <standalone/> elements."
+
+// ✅ CORRECT output (after May 31 fix):
+// "The [PUA] and [PUA] elements."
+
+
+---
+
+// ============================================================
+// TEST 20: Technical Context with Code Braces
+// Tests that code braces are correctly counted without overlap
+// Expected: Correct technical context detection
+// ============================================================
+"const obj = { key: 'value', nested: { deep: true } }; console.log(obj);"
+
+// ✅ CORRECT output (after May 31 fix):
+// Technical context detected → synonym replacement disabled
+
+
+---
+
+*Last Updated: May 31, 2026 — Word Filtering & XML Depth Tracking Fixes*

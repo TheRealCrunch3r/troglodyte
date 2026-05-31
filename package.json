@@ -1,6 +1,6 @@
 {
   "name": "troglodyte",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "Troglodyte - Reduce token usage by removing fluff and filler from prompts",
   "main": "dist/index.js",
   "scripts": {
