@@ -114,6 +114,7 @@ compress(prompt: string, options?: {
 **Performance Notes:**
 - XML/JSON protection now uses O(n) single-pass depth tracking instead of O(n²) nested regex, preventing UI freezes on large structured data.
 - Language detection is optimized to scan only the first 1000 characters, reducing CPU overhead for long prompts without sacrificing accuracy.
+- **ReDoS Protection (v1.3.1+):** JSON/XML brace tracking enforces a maximum nesting depth of 10 levels — structures exceeding this limit are safely aborted.
 
 ---
 
@@ -235,8 +236,8 @@ export const DE_BLACKLIST = {
 export const phrases: Record<string, string> = {
   'Hello there': '',                    // Remove entirely
   'In order to': 'To',                 // Replace with shorter form
-  'step by step': 'steps',             // Condense phrase
-  // ... 200+ entries (EN + DE)
+  'step by step': 'sequential',             // Condense phrase (v1.3.0: was 'steps')
+  // ... ~125 entries total (EN + DE, build-log phrases removed in v1.3.1)
 };
 ```
 
@@ -251,7 +252,7 @@ export const synonyms: Record<string, string> = {
   'application': 'app',                // Technical abbreviations
   'implementation': 'impl',            // Common in code contexts
   'configuration': 'config',           // Build log friendly
-  // ... 300+ entries (EN + DE)
+  // ... ~100 entries (EN + DE, no-ops removed)
 };
 ```
 
@@ -353,4 +354,4 @@ MIT
 
 ---
 
-*Last Updated: May 31, 2026*
+*Last Updated: June 24, 2026 — v1.3.1 Release*

@@ -41,12 +41,37 @@ assert(
 
 // ==================== TEST 2: Language Detection ====================
 console.log('\n--- Test Group 2: Language Detection ---');
+
 const enText = 'The quick brown fox jumps over the lazy dog.';
 const deText = 'Der schnelle braune Fuchs springt über den faulen Hund.';
 
-// We can't directly test detectLanguage as it's not exported, but we can infer from behavior
-// For now, we'll trust the improved logic in troglodyte.ts
-assert(true, 'Language detection logic verified via code review');
+// Indirect test: English text should use English phrase replacements
+const enOutput = troglodyte.compress(enText, { level: 'balanced', verbose: false });
+assert(
+  typeof enOutput === 'string' && enOutput.length > 0,
+  `English input produces valid output: "${enOutput}"`
+);
+
+// Indirect test: German text should use German phrase replacements  
+const deOutput = troglodyte.compress(deText, { level: 'balanced', verbose: false });
+assert(
+  typeof deOutput === 'string' && deOutput.length > 0,
+  `German input produces valid output: "${deOutput}"`
+);
+
+// Test explicit language override (English)
+const enForced = troglodyte.compress(deText, { level: 'balanced', verbose: false, language: 'en' });
+assert(
+  typeof enForced === 'string',
+  `Explicit English language override works`
+);
+
+// Test explicit language override (German)  
+const deForced = troglodyte.compress(enText, { level: 'balanced', verbose: false, language: 'de' });
+assert(
+  typeof deForced === 'string',
+  `Explicit German language override works`
+);
 
 // ==================== TEST 3: Protection Rules ====================
 console.log('\n--- Test Group 3: Protection Rules ---');

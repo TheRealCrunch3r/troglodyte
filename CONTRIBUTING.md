@@ -101,8 +101,8 @@ export const phrases: Record<string, string> = {
   'In order to': 'To',
   'Due to the fact that': 'Because',
   
-  // Condense multi-word phrase
-  'step by step': 'steps',
+  // Condense multi-word phrase (v1.3.0: use 'sequential' instead of 'steps')
+  'step by step': 'sequential',
 };
 ```
 
@@ -202,7 +202,7 @@ and assistance!
 
 **Expected (Balanced):**
 ```
-possibly help me out? explain how install Node.js Windows steps.
+possibly help me out? explain how install Node.js Windows sequential.
 ```
 
 ---
@@ -263,6 +263,7 @@ If you see `Cannot find name 'console'` after upgrading TypeScript:
 | `API_REFERENCE.md` | TypeScript API documentation |
 | `CHANGELOG.md` | Version history |
 | `memory.md` | Developer notes, quick reference |
+- **[API_REFERENCE.md](./API_REFERENCE.md)** — TypeScript API documentation |
 
 ---
 
@@ -292,4 +293,4 @@ By contributing, you agree that your contributions will be licensed under the MI
 
 ---
 
-*Last Updated: May 31, 2026*
+*Last Updated: June 24, 2026 — v1.3.1 Release*

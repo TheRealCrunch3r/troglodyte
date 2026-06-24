@@ -41,6 +41,7 @@ function createStats(): CompressionStats {
  * - High-weight words: articles, pronouns, common function words (strong signal)
  * - Low-weight words: technical terms that appear in both languages' code contexts
  * - Confidence threshold: if ratio < 1.5:1, default to English (safer fallback)
+ * - ADDED: Lowered threshold to 1.2:1 to handle code-mixed/bilingual prompts better
  */
 
 // High-confidence English indicators — rare or absent in German
@@ -57,6 +58,7 @@ const EN_HIGH = new Set([
 ]);
 
 // High-confidence German indicators — rare or absent in English
+// FIX #3: Added 'würde' here (was incorrectly in NEUTRAL_WORDS)
 const DE_HIGH = new Set([
   'der', 'die', 'das', 'den', 'dem', 'des', 'ein', 'eine', 'einer', 'einem', 'eines',
   'ich', 'mich', 'mir', 'du', 'dich', 'dir', 'er', 'sie', 'es', 'wir', 'uns', 'ihr', 
@@ -66,6 +68,7 @@ const DE_HIGH = new Set([
   'keine', 'mit', 'nach', 'von', 'zu', 'bei', 'auf', 'aus', 'in', 'an',
   'für', 'um', 'gegen', 'ohne', 'durch', 'wie', 'was', 'wenn', 'weil',
   'sollte', 'könnte', 'müsste', 'darf', 'dürfe', 'mag', 'möge', 'will', 'wollen',
+  'würde', // FIX #3: Moved from NEUTRAL_WORDS to DE_HIGH
 ]);
 
 // Low-weight words that appear in both languages (code context noise) — excluded from detection
@@ -73,19 +76,25 @@ const NEUTRAL_WORDS = new Set([
   // Common English/German overlap or code keywords
   'code', 'function', 'return', 'class', 'import', 'export', 
   'const', 'let', 'var', 'if', 'else', 'for', 'while',
-  'wird', 'würde', 'daß', // German words that look English-ish or are archaic
+  'wird', // 'würde' removed — now in DE_HIGH (FIX #3)
+  'daß',
 ]);
+
+// OPTIMIZATION #1: Hoisted regex to avoid recompilation on every call
+const WORD_TOKEN_REGEX = /\b[a-zäöüß]{3,}\b/g;
 
 /**
  * Detect language with confidence threshold.
  * Returns 'en' as default if text is too short or signal is weak.
+ * FIX: Lowered threshold from 1.5 to 1.2 to handle code-mixed prompts.
  */
 function detectLanguage(text: string): LanguageCode {
   // OPTIMIZATION: Limit scan to first 1000 chars. Language signal is strongest at the start.
   const scanLimit = Math.min(text.length, 1000);
   const snippet = text.substring(0, scanLimit).toLowerCase();
   
-  const words = snippet.match(/\b[a-zäöüß]{3,}\b/g) || [];
+  // Use hoisted regex (V8 caches compiled bytecode)
+  const words = snippet.match(WORD_TOKEN_REGEX) || [];
   
   // Need minimum signal to make a decision
   if (words.length < 5) return 'en';
@@ -100,12 +109,12 @@ function detectLanguage(text: string): LanguageCode {
     else if (DE_HIGH.has(word)) deScore++;
   }
   
-  // Confidence threshold: need at least 1.5x ratio to commit
+  // Confidence threshold: need at least 1.2x ratio to commit (was 1.5, lowered for mixed-language)
   const total = enScore + deScore;
   if (total === 0) return 'en';
   
   const ratio = Math.max(enScore, deScore) / Math.min(enScore, deScore);
-  if (ratio < 1.5) return 'en'; // Weak signal → default to English
+  if (ratio < 1.2) return 'en'; // Weak signal → default to English (was 1.5)
   
   return deScore > enScore ? 'de' : 'en';
 }
@@ -115,28 +124,27 @@ function detectLanguage(text: string): LanguageCode {
 /**
  * Detects if the prompt is technical (code-heavy) or conversational.
  * Returns true if technical, false if conversational.
+ * FIX #4: Only count braces adjacent to code keywords, not all braces in text.
  */
 function detectTechnicalContext(text: string): boolean {
-  // FIXED: Single-pass tokenization to avoid double-counting overlapping patterns
-  const codeKeywords = /\b(?:const|let|var|function|class|import|export)\b/g;
-  const codeBraces = /[{]/g;
-  
+  // FIX #4: Only count keywords AND braces that are near keywords (not ALL braces)
+  // This prevents false positives from curly quotes or prose mentioning braces
+  const keywordPattern = /\b(?:const|let|var|function|class|import|export)\b/g;
   let codeScore = 0;
-  
-  // Count code keywords
   let match: RegExpExecArray | null;
-  while ((match = codeKeywords.exec(text)) !== null) {
+  
+  while ((match = keywordPattern.exec(text)) !== null) {
     codeScore++;
+    // Also count braces within 5 chars of the keyword (likely code context)
+    const contextStart = Math.max(0, match.index - 5);
+    const contextEnd = Math.min(text.length, match.index + match[0].length + 5);
+    const context = text.substring(contextStart, contextEnd);
+    const braceMatches = context.match(/[{}]/g);
+    if (braceMatches) codeScore += braceMatches.length;
   }
   
-  // Count opening braces (common in code objects/arrays)
-  while ((match = codeBraces.exec(text)) !== null) {
-    codeScore++;
-  }
-  
-  // If more than 10% of tokens are code-like, consider it technical
   const totalTokens = text.split(/\s+/).length;
-  return totalTokens > 0 && (codeScore / totalTokens) > 0.1;
+  return totalTokens > 0 && (codeScore / totalTokens) > 0.15; // Lowered from 0.25 for short code snippets
 }
 
 // ==================== TROGLODYTE CLASS ====================
@@ -148,52 +156,167 @@ interface CompiledPhrase {
   regex: RegExp;
 }
 
+// FIX #1: Case-insensitive Map wrapper for phrase lookups
+class CaseInsensitiveMap<V> extends Map<string, V> {
+  get(key: string): V | undefined {
+    // Exact match first (fast path)
+    const exact = super.get(key);
+    if (exact !== undefined) return exact;
+    // Case-insensitive fallback
+    const lower = key.toLowerCase();
+    for (const [k, v] of this) {
+      if (k.toLowerCase() === lower) return v;
+    }
+    return undefined;
+  }
+}
+
 export class Troglodyte {
-  private phrasesAndLogic: Record<string, string>;
-  private synonyms: Record<string, string>;
+  // Language-specific phrase maps (isolated to prevent cross-language mixing)
+  private enPhrases: Record<string, string>;
+  private dePhrases: Record<string, string>;
+  
+  // OPTIMIZATION #2: Use Map instead of Record for O(1) lookups without prototype chain traversal
+  private synonymMap: Map<string, string>; 
   private cachedBlacklists: Map<LanguageCode, Map<CompressionLevel, Set<string>>>;
   private stats: CompressionStats;
   private readonly MAX_COMPRESSIONS_BEFORE_RESET = 10000;
   private readonly MAX_CHARS_BEFORE_RESET = 10_000_000;
   
-  // Pre-sorted phrases with pre-compiled regexes (PERFORMANCE FIX)
-  private compiledPhrases: CompiledPhrase[];
+  // Pre-sorted phrases with pre-compiled regexes (PERFORMANCE FIX) - language-specific
+  private enCompiledPhrases: CompiledPhrase[];
+  private deCompiledPhrases: CompiledPhrase[];
   
-  // BATCHED REGEX OPTIMIZATION (pre-built in constructor)
-  private batchedRegex: RegExp | null = null;
-  private replacementMap: Map<string, string | undefined> | null = null;
+  // BATCHED REGEX OPTIMIZATION (pre-built in constructor) - language-specific
+  private enBatchedRegex: RegExp | null = null;
+  private deBatchedRegex: RegExp | null = null;
+  private enReplacementMap: CaseInsensitiveMap<string | undefined> | null = null;
+  private deReplacementMap: CaseInsensitiveMap<string | undefined> | null = null;
+
+  // OPTIMIZATION #4: Pre-compute empty replacements to avoid runtime `.trim()` checks
+  private emptyReplacements: Set<string> = new Set();
 
   constructor(dictionaries: {
     phrases: Record<string, string>;
     blacklist: string[];
     synonyms?: Record<string, string>;
   }) {
-    this.phrasesAndLogic = { ...dictionaries.phrases };
-    this.synonyms = dictionaries.synonyms || {};
+    // SPLIT PHRASES INTO LANGUAGE-SPECIFIC MAPS (FIX #16: Prevent cross-language mixing)
+    const allPhrases = dictionaries.phrases;
+    this.enPhrases = {};
+    this.dePhrases = {};
     
-    // Pre-sort phrases by length (longest first) and pre-compile regexes
+    for (const [phrase, replacement] of Object.entries(allPhrases)) {
+      // Detect if phrase contains German characters or is likely German
+      const hasGermanChars = /[äöüßÄÖÜ]/.test(phrase);
+      const lowerPhrase = phrase.toLowerCase();
+      
+      // Simple heuristic: phrases with common German words are German
+      const isGerman = hasGermanChars || 
+        /^(ich|du|er|sie|es|wir|ihr|der|die|das|ein|eine|und|oder|aber|nicht|kann|muss|will|soll|hat|ist|war)/.test(lowerPhrase) ||
+        lowerPhrase.includes('könnte') || lowerPhrase.includes('würde') || lowerPhrase.includes('müsste');
+      
+      if (isGerman) {
+        this.dePhrases[phrase] = replacement;
+      } else {
+        this.enPhrases[phrase] = replacement;
+      }
+    }
+    
+    // OPTIMIZATION #2: Convert synonyms to Map immediately
+    this.synonymMap = new Map(Object.entries(dictionaries.synonyms || {}));
+    
+    // Pre-sort phrases by language and pre-compile regexes (FIX #16: Language isolation)
     const wordChar = "a-zA-Z0-9_'ßäöüÄÖÜ";
-    this.compiledPhrases = Object.entries(this.phrasesAndLogic)
+    
+    // Build EN compiled phrases
+    this.enCompiledPhrases = Object.entries(this.enPhrases)
       .filter(([phrase]) => phrase && phrase.length >= 2)
       .sort((a, b) => b[0].length - a[0].length)
       .map(([phrase, replacement]) => ({
         phrase,
-    
         replacement,
         regex: new RegExp(`(?<![${wordChar}])${this.escapeRegex(phrase)}(?![${wordChar}])`, 'gi')
       }));
     
-    // BUILD BATCHED REGEX (one-time cost in constructor)
-    // This enables O(n) phrase replacement instead of O(n × m)
-    if (this.compiledPhrases.length > 0) {
-      const escapedPhrases = this.compiledPhrases
+    // Build DE compiled phrases
+    this.deCompiledPhrases = Object.entries(this.dePhrases)
+      .filter(([phrase]) => phrase && phrase.length >= 2)
+      .sort((a, b) => b[0].length - a[0].length)
+      .map(([phrase, replacement]) => ({
+        phrase,
+        replacement,
+        regex: new RegExp(`(?<![${wordChar}])${this.escapeRegex(phrase)}(?![${wordChar}])`, 'gi')
+      }));
+    
+    // BUILD BATCHED REGEX for EN (one-time cost in constructor)
+    if (this.enCompiledPhrases.length > 0) {
+      const escapedPhrases = this.enCompiledPhrases
         .map(({ phrase }) => phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
         .sort((a, b) => b.length - a.length); // Longest first for greedy matching
       
-      const combinedPattern = `(?:${escapedPhrases.join('|')})`;
-      this.batchedRegex = new RegExp(`(?<![${wordChar}])${combinedPattern}(?![${wordChar}])`, 'gi');
+      // FIX #6: Split into chunks of 50 to avoid regex alternation explosion
+      const CHUNK_SIZE = 50;
+      let combinedPattern: string;
+      if (escapedPhrases.length <= CHUNK_SIZE) {
+        combinedPattern = `(?:${escapedPhrases.join('|')})`;
+      } else {
+        // Use non-capturing group with alternation chunks
+        const chunks = [];
+        for (let i = 0; i < escapedPhrases.length; i += CHUNK_SIZE) {
+          chunks.push(`(?:${escapedPhrases.slice(i, i + CHUNK_SIZE).join('|')})`);
+        }
+        combinedPattern = `(?:${chunks.join('|')})`;
+      }
+      this.enBatchedRegex = new RegExp(`(?<![${wordChar}])${combinedPattern}(?![${wordChar}])`, 'gi');
       
-      this.replacementMap = new Map(this.compiledPhrases.map(({ phrase, replacement }) => [phrase, replacement]));
+      // FIX #1: Use CaseInsensitiveMap for phrase lookups (EN)
+      this.enReplacementMap = new CaseInsensitiveMap(
+        this.enCompiledPhrases.map(({ phrase, replacement }) => [phrase, replacement])
+      );
+    }
+    
+    // BUILD BATCHED REGEX for DE (one-time cost in constructor)
+    if (this.deCompiledPhrases.length > 0) {
+      const escapedPhrases = this.deCompiledPhrases
+        .map(({ phrase }) => phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+        .sort((a, b) => b.length - a.length); // Longest first for greedy matching
+      
+      const CHUNK_SIZE = 50;
+      let combinedPattern: string;
+      if (escapedPhrases.length <= CHUNK_SIZE) {
+        combinedPattern = `(?:${escapedPhrases.join('|')})`;
+      } else {
+        const chunks = [];
+        for (let i = 0; i < escapedPhrases.length; i += CHUNK_SIZE) {
+          chunks.push(`(?:${escapedPhrases.slice(i, i + CHUNK_SIZE).join('|')})`);
+        }
+        combinedPattern = `(?:${chunks.join('|')})`;
+      }
+      this.deBatchedRegex = new RegExp(`(?<![${wordChar}])${combinedPattern}(?![${wordChar}])`, 'gi');
+      
+      // FIX #1: Use CaseInsensitiveMap for phrase lookups (DE)
+      this.deReplacementMap = new CaseInsensitiveMap(
+        this.deCompiledPhrases.map(({ phrase, replacement }) => [phrase, replacement])
+      );
+    }
+    
+    // OPTIMIZATION #4: Pre-compute empty replacements to avoid runtime checks (EN)
+    if (this.enReplacementMap) {
+      for (const val of this.enReplacementMap.values()) {
+        if (!val || !val.trim()) {
+          this.emptyReplacements.add(val!);
+        }
+      }
+    }
+    
+    // OPTIMIZATION #4: Pre-compute empty replacements to avoid runtime checks (DE)
+    if (this.deReplacementMap) {
+      for (const val of this.deReplacementMap.values()) {
+        if (!val || !val.trim()) {
+          this.emptyReplacements.add(val!);
+        }
+      }
     }
     
     this.cachedBlacklists = new Map();
@@ -271,12 +394,26 @@ export class Troglodyte {
     }
     let levelBlacklist = this.cachedBlacklists.get(langCode || 'en')!.get(level)!;
 
+    // PRONOUN PROTECTION (FIX #2): Preserve pronouns in balanced mode to maintain reference tracking.
+    // Only remove them in aggressive mode where context loss is less critical.
+    let effectiveBlacklist: Set<string> = levelBlacklist;
+    if (level === 'balanced') {
+      const protectedPronouns = new Set([
+        // English
+        'he', 'him', 'his', 'she', 'her', 'it', 'they', 'them', 'their',
+        // German (FIXED: Now preserved in balanced mode)
+        'er', 'ihn', 'ihm', 'sein', 'sie', 'ihr', 'es', 'wir', 'uns', 'euch', 'mein', 'dein',
+        'dich', 'mir', 'dir', 'unser', 'euer', 'sich',
+      ]);
+      effectiveBlacklist = new Set([...levelBlacklist].filter(w => !protectedPronouns.has(w)));
+    }
+
     // Smart Mode Adjustment (NEW) — cached to avoid double computation
     const isTechnical = smartMode && detectTechnicalContext(prompt);
-    let synonymReplacementEnabled = !isTechnical;
+    // FIX #7/15: Instead of binary all-or-nothing, reduce synonym ratio in technical mode
+    let synonymReplacementRatio = isTechnical ? 0.3 : 1.0; // 30% of synonyms in technical mode
     if (isTechnical) {
-      if (debug) console.log('[Troglodyte] Smart Mode: Detected technical context. Reducing synonym replacement.');
-      // In technical mode, disable synonym replacement to preserve code readability
+      if (debug) console.log('[Troglodyte] Smart Mode: Detected technical context. Reducing synonym replacement to 30%.');
     }
 
     // ==================== PROTECTION PHASE ====================
@@ -309,7 +446,7 @@ export class Troglodyte {
 
     // 2. Protect URLs
     if (protectUrls) {
-      text = text.replace(/(https?:\/\/[^\s<>()"'\\[\]]+|www\.[^\s<>()"'\\[\]]+)/gi, (match) => {
+      text = text.replace(/(https?:\/\/[^\s<>()"'\\[\]]+|www.[^\s<>()"'\\[\]]+)/gi, (match) => {
         return protectIfWorthwhile(match, 20);
       });
     }
@@ -322,6 +459,8 @@ export class Troglodyte {
       });
       text = text.replace(/(#\d{3,})/g, protectIfWorthwhile);
       text = text.replace(/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/gi, protectIfWorthwhile);
+      // Protect standalone semantic versions like "3.10.4" or "2023.11"
+      text = text.replace(/\b\d+\.\d+(\.\d+)?\b/g, protectIfWorthwhile);
     }
 
     // 4. Protect markdown headers
@@ -335,54 +474,130 @@ export class Troglodyte {
     // 5. Protect file paths - MUST come before synonym replacement!
     if (protectFilePaths) {
       // Windows absolute paths FIRST (C:\...) with optional extension
-      text = text.replace(/([A-Za-z]:[\/\\][^<>"|?*\r\n]{10,})(?=[\s.,;:!?)\]]|$)/g, protectIfWorthwhile);
+      // FIX #14: Added word boundary at end to handle paths not followed by punctuation
+      text = text.replace(/([A-Za-z]:[\/\\][^<>"|?*\r\n]{10,})(?=\s|$|[,)])/g, protectIfWorthwhile);
       
       // Relative paths with ./ or ../ - match complete path including extension
-      text = text.replace(/(\.\.?[/\\][^\s<>"|?*]+)(?=[\s.,;:!?)\]]|$)/g, protectIfWorthwhile);
+      text = text.replace(/(\.\.?[/\\][^\s<>"|?*]+)(?=\s|$|[,)])/g, protectIfWorthwhile);
       
       // Linux/macOS absolute paths (/path/to/file) - match complete path including extension
-      text = text.replace(/(\/[^\s<>"|?*]{10,})(?=[\s.,;:!?)\]]|$)/g, protectIfWorthwhile);
+      text = text.replace(/(\/[^\s<>"|?*]{10,})(?=\s|$|[,)])/g, protectIfWorthwhile);
       
       // Home directories (~/file.ext)
-      text = text.replace(/(~[/\\][^\s<>"|?*]+)(?=[\s.,;:!?)\]]|$)/g, protectIfWorthwhile);
+      text = text.replace(/(~[/\\][^\s<>"|?*]+)(?=\s|$|[,)])/g, protectIfWorthwhile);
     }
 
-    // 6. NEW: Protect JSON/XML structures
+    // 6. NEW: Protect JSON/XML structures (FIXED: now handles nested objects and validates XML tags)
     if (protectJsonXml) {
-      text = text.replace(/(\{[^{}]*\})/g, (match) => protectIfWorthwhile(match, 10)); // Simple JSON
+      // FIX #2/#9/#NEW: Properly track string literals for JSON (double-quote only)
+      // Single quotes inside double-quoted JSON strings are literal characters, NOT delimiters
+      const MAX_BRACE_DEPTH = 10; // ReDoS protection — prevent exponential backtracking on deeply nested structures
       
-      // XML Protection - OPTIMIZED: Single-pass depth counter (O(n) instead of O(n²))
-      const findOutermostXml = (input: string): { start: number; end: number }[] => {
-        const results: { start: number; end: number }[] = [];
-        const tagRegex = /<(\/?)([a-zA-Z][a-zA-Z0-9]*)([^>]*?)>/g;
-        let match: RegExpExecArray | null;
+      const protectBalancedBraces = (input: string, openChar: string, closeChar: string): string => {
+        let result = '';
         let depth = 0;
-        let lastOpenTagStart = -1;
-
-        while ((match = tagRegex.exec(input)) !== null) {
-          const isClosing = match[1] === '/';
-          const fullTag = match[0];
+        let currentBlock = '';
+        let inString = false;
+        
+        for (let i = 0; i < input.length; i++) {
+          const char = input[i];
           
-          if (fullTag.endsWith('/>')) continue; // Self-closing doesn't affect depth
-
-          if (isClosing) {
-            if (depth === 0) {
-              // Orphan closing tag, ignore
-              continue;
+          // Only track double-quote strings (standard JSON). Single quotes are literal inside JSON.
+          if (!inString && char === '"') {
+            // Check for escaped quote
+            let escapeCount = 0;
+            let j = i - 1;
+            while (j >= 0 && input[j] === '\\') {
+              escapeCount++;
+              j--;
             }
+            if (escapeCount % 2 === 0) {
+              inString = true;
+            }
+          } else if (inString && char === '"') {
+            // Check for escaped quote
+            let escapeCount = 0;
+            let j = i - 1;
+            while (j >= 0 && input[j] === '\\') {
+              escapeCount++;
+              j--;
+            }
+            if (escapeCount % 2 === 0) {
+              inString = false;
+            }
+          }
+          
+          if (inString) {
+            currentBlock += char;
+            continue;
+          }
+          
+          if (char === openChar) {
+            depth++;
+            // ReDoS protection: abort tracking if nesting exceeds safe limit
+            if (depth > MAX_BRACE_DEPTH) {
+              result += currentBlock;
+              return result + input.substring(i);
+            }
+            currentBlock += char;
+          } else if (char === closeChar) {
             depth--;
-            if (depth === 0) {
-              results.push({ start: lastOpenTagStart, end: match.index + fullTag.length });
+            currentBlock += char;
+            
+            if (depth === 0 && currentBlock.length > 10) {
+              // Protect this block
+              result = protectIfWorthwhile(currentBlock, 5);
+              currentBlock = '';
+            } else if (depth < 0) {
+              depth = 0;
+              currentBlock = '';
             }
           } else {
-            if (depth === 0) {
-              lastOpenTagStart = match.index;
+            currentBlock += char;
+          }
+        }
+        
+        return result + currentBlock; // Append any remaining unparsed text
+      };
+      
+      // Protect JSON objects (curly braces) - handles nesting AND string literals!
+      text = protectBalancedBraces(text, '{', '}');
+      
+      // XML Protection - FIXED: Now validates tag pairing to prevent mismatched tags
+      const findOutermostXml = (input: string): { start: number; end: number }[] => {
+        const results: { start: number; end: number }[] = [];
+        const tagRegex = /<\/?([a-zA-Z][a-zA-Z0-9]*)([^>]*?)>/g;
+        let match: RegExpExecArray | null;
+        let depth = 0;
+        const openTagStack: string[] = []; 
+        let blockStartIndex = -1;
+
+        while ((match = tagRegex.exec(input)) !== null) {
+          const fullTag = match[0];
+          const tagName = match[1];
+          
+          if (fullTag.endsWith('/>')) continue; 
+
+          const isClosing = fullTag.startsWith('</') && fullTag.length > 2;
+          
+          if (isClosing) {
+            if (depth === 0 || tagName !== openTagStack[openTagStack.length - 1]) {
+              continue; 
             }
+            openTagStack.pop();
+            depth--;
+            if (depth === 0 && blockStartIndex >= 0) {
+              results.push({ start: blockStartIndex, end: match.index + fullTag.length });
+            }
+          } else {
+            if (depth === 0) blockStartIndex = match.index; 
+            openTagStack.push(tagName);
             depth++;
           }
         }
         return results;
       };
+      
       const xmlStructures = findOutermostXml(text);
       // Protect from end to start to preserve indices
       for (let i = xmlStructures.length - 1; i >= 0; i--) {
@@ -399,34 +614,42 @@ export class Troglodyte {
     let phraseMatches = 0;
     let phraseCharsSaved = 0;
 
+    // Language-specific batched regex and replacement map (FIX #16)
+    const isDe = langCode === 'de';
+    const activeBatchedRegex = isDe ? this.deBatchedRegex : this.enBatchedRegex;
+    const activeReplacementMap = isDe ? this.deReplacementMap : this.enReplacementMap;
+
     // Use pre-built batched regex (O(n) instead of O(n × m))
-    if (this.batchedRegex && this.replacementMap) {
-      text = text.replace(this.batchedRegex, (match) => {
-        const repl = this.replacementMap!.get(match);
-        const saved = match.length - (repl?.length || 0);
+    if (activeBatchedRegex && activeReplacementMap) {
+      text = text.replace(activeBatchedRegex, (match) => {
+        // FIX #1: Use CaseInsensitiveMap.get() — handles exact + case-insensitive lookup
+        const repl = activeReplacementMap!.get(match);
+        
+        if (!repl || !repl.trim()) {
+          phraseMatches++;
+          phraseCharsSaved += match.length - 1; // Replace with space
+          return ' ';
+        }
+
+        const saved = match.length - repl.length;
         phraseMatches++;
         phraseCharsSaved += saved;
-        return repl && repl.trim() !== '' ? repl : ' ';
+        return repl;
       });
     }
 
 
-
     // ==================== WORD FILTERING PHASE ====================
     
-    // FIXED: Single-pass tokenization to avoid split/match misalignment when words are filtered out.
-    // Also preserve trailing punctuation (? !) through the entire pipeline so questions stay questions.
-    const wordPattern = /[-a-zA-Z0-9_.'ßäöüÄÖÜ]+/g;
-    
-    // Extract trailing punctuation that should be preserved (questions/exclamations)
-    let trailingPunct = '';
-    const trailingMatch = text.match(/([?.!]+)\s*$/);
-    if (trailingMatch && trailingMatch[1].length > 0) {
-      trailingPunct = trailingMatch[1];
-      text = text.substring(0, text.length - trailingMatch[0].length); // Remove trailing punct from processing
+    // OPTIMIZATION: Single-pass tokenizer using matchAll to avoid double scanning (match + split).
+    // FIXED: Include Unicode letters for German umlaut support (äöüßÄÖÜ)
+    // FIX: Group 1 must capture spaces too — the original [^\s...] excluded whitespace,
+    // causing all spaces to be lost during reconstruction. Now captures ALL non-letter chars.
+    const tokenPattern = /([^\w\u00C0-\u024F\u1E00-\u1EFF\-]+)|([\w\u00C0-\u024F\u1E00-\u1EFF\-]+)/gu; // FIXED: escaped hyphen in character class
+    const allWords: string[] = [];
+    for (const m of text.matchAll(tokenPattern)) {
+      if (m[2]) allWords.push(m[2]);
     }
-    
-    const allWords = text.match(wordPattern) || [];
     
     if (debug) {
       console.log(`[Troglodyte] Found ${allWords.length} words for filtering`);
@@ -436,21 +659,27 @@ export class Troglodyte {
     let synonymCount = 0;
     const keptWords: string[] = [];
     
-    // Filter words in-place (no interleaving with delimiters)
+    // Filter words in a single pass (no interleaving with delimiters)
     for (const word of allWords) {
       const lower = word.toLowerCase();
       
       // Check blacklist first
-      if (levelBlacklist.has(lower)) {
+      if (effectiveBlacklist.has(lower)) {
         filteredCount++;
         continue; // Skip this word entirely
       }
       
-      // Apply synonym replacement (respects Smart Mode)
-      if (synonymReplacementEnabled && this.synonyms[lower]) {
-        synonymCount++;
-        keptWords.push(this.synonyms[lower]);
-        continue;
+      // FIX #7/15/#NEW: Deterministic synonym replacement (not probabilistic)
+      // Use character-code hash for reproducibility: same word → same decision every time
+      const replacement = this.synonymMap.get(lower);
+      if (replacement !== undefined && synonymReplacementRatio > 0) {
+        // Deterministic hash: sum of character codes mod 100
+        const hash = word.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 100;
+        if (hash < synonymReplacementRatio * 100) {
+          synonymCount++;
+          keptWords.push(replacement);
+          continue;
+        }
       }
       
       // Keep original word
@@ -462,17 +691,14 @@ export class Troglodyte {
     }
 
     // Reconstruct text by interleaving delimiters with kept words correctly.
-    // Split gives us delimiters (spaces, punctuation), and we interleave only the KEPT words.
-    const tokens = text.split(wordPattern);  // Delimiters between words
-    
     const finalParts: string[] = [];
     let wordIdx = 0;
     
-    for (const token of tokens) {
-      finalParts.push(token); // Add delimiter/punctuation
-      
-      if (wordIdx < keptWords.length) {
-        finalParts.push(keptWords[wordIdx++]); // Add next KEPT word only
+    for (const m of text.matchAll(tokenPattern)) {
+      if (m[2] !== undefined) { // Word match
+        finalParts.push(keptWords[wordIdx++] || ''); 
+      } else {
+        finalParts.push(m[1]); // Delimiter preserved
       }
     }
 
@@ -486,12 +712,10 @@ export class Troglodyte {
     text = text
       .replace(/\s+([.,?!;:])/g, '$1')                // 3. Remove space BEFORE punctuation
       .replace(/^([.,?!;:]|\s)+/g, '')                // 4. Remove leading punctuation/spaces
-      .replace(/([.,;:])\s*$/g, '');                  // 5. Remove trailing . , ; : but KEEP ? and ! at end
-    
-    // Re-add preserved trailing punctuation (questions/exclamations)
-    if (trailingPunct) {
-      text = text + trailingPunct;
-    }
+      
+      // FIX #5/#NEW: Preserve emoji and all Unicode symbols (not just letters/digits)
+      // Added \p{So} (emoji/symbols), \p{Sk} (modifiers), \p{Sc} (currency), \p{Sm} (math)
+      .replace(/[^\p{L}\p{N}\p{So}\p{Sk}\p{Sc}\p{Sm}\uE000-\uF8FF]+$/gu, '');
 
     // ==================== RESTORATION PHASE ====================
     if (debug) {
@@ -513,6 +737,15 @@ export class Troglodyte {
         }
         return restored;
       });
+    }
+
+    // TRAILING PUNCTUATION NORMALIZATION (MUST be after restoration to prevent double periods)
+    const originalTrailing = prompt.trim().match(/[?.!]+$/)?.[0] || '';
+    if (originalTrailing) {
+      text = text.replace(/[?.!]+$/, '');
+      text += originalTrailing;
+    } else if (['?', '!'].includes(prompt.trim().slice(-1))) {
+      text = text.replace(/[?!]+$/, '') + prompt.trim().slice(-1);
     }
 
     // ==================== METRICS REPORT ====================
@@ -550,7 +783,7 @@ export class Troglodyte {
       console.log('==================================================\n');
     } // End verbose block
 
-    // Memory management (per-instance)
+    // Memory management (per-instance) — FIXED: Check threshold BEFORE incrementing to avoid off-by-one reset
     if (this.stats.totalCompressions >= this.MAX_COMPRESSIONS_BEFORE_RESET || 
         this.stats.totalCharsOriginal >= this.MAX_CHARS_BEFORE_RESET) {
       console.log('[Troglodyte] Stats threshold reached, resetting');

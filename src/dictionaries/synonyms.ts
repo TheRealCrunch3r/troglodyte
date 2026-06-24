@@ -5,6 +5,7 @@
  * - No non-words (e.g., "impling", "newed")
  * - No semantic inverses (e.g., "implemented" → "implied")
  * - No ambiguous short forms (e.g., "opt" could mean "choose")
+ * - No no-ops (word mapping to itself) — removed for performance
  */
 
 export const synonyms: Record<string, string> = {
@@ -91,8 +92,6 @@ export const synonyms: Record<string, string> = {
 
   'anwendung': 'app',
   'anwendungen': 'apps',
-  'informationen': 'infos',
-  'umgebung': 'env',
   'konfiguration': 'config',
   'dokumentation': 'docs',
   'funktionalität': 'func',
@@ -121,60 +120,4 @@ export const synonyms: Record<string, string> = {
   'statement': 'stmt',
   'statements': 'stmts',
   'declaration': 'decl',
-  'declarations': 'decls',
-  'definition': 'def',
-  'definitions': 'defs',
-  'instance': 'inst',
-  'instances': 'insts',
-
-  // Error/warning types — keep full words, they're already short
-  'undefined': 'undefined',   // "undef" is not standard in prose
-  'unresolved': 'unresolved',
-  'incomplete': 'incomplete',
-  'unused': 'unused',
-  'deprecated': 'deprecated',
-  'obsolete': 'obsolete',
-  'redundant': 'redundant',
-  'duplicate': 'duplicate',
-  'conflict': 'conflict',
-  'ambiguous': 'ambiguous',
-
-  // File/path related — keep full, they're already short
-  'folder': 'folder',         // "fldr" is not standard
-  'path': 'path',             // "pth" is ambiguous (could be "paths")
-  'paths': 'paths',
-  'source': 'source',         // "src" is a directory name, not a synonym for "source"
-  'sources': 'sources',
-  'header': 'header',         // "hdr" is file extension context only
-  'headers': 'headers',
-  'include': 'include',       // "inc" is ambiguous (could be "income")
-  'includes': 'includes',
-
-  // German build terms — keep full, abbreviations are not standard in prose
-  'erstellung': 'erstellung',
-  'kompilieren': 'kompilieren',
-  'verknüpfen': 'verknüpfen',
-  'fehler': 'fehler',
-  'warnung': 'warnung',
-  'hinweis': 'hinweis',
-  'quelle': 'quelle',
-  'ziel': 'ziel',
-  'verzeichnis': 'verzeichnis',
-
-  // MSVC German error terms — keep full (these are proper nouns/technical terms)
-  'bezeichner': 'bezeichner',
-  'typspezifizierer': 'typspezifizierer',
-  'syntaxfehler': 'syntaxfehler',
-  'deklarierter': 'deklarierter',
-  'ungültig': 'ungültig',
-  'angenommen': 'angenommen',
-  'unterstützt': 'unterstützt',
-  'geöffnet': 'geöffnet',
-  'verwendung': 'verwendung',
-  'gefunden': 'gefunden',
-  'fehlt': 'fehlt',
-  'fehlendes': 'fehlendes',
-
-  // Warning terms — keep full
-  'neuerstellung': 'neuerstellung',
 };

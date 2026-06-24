@@ -11,18 +11,50 @@ const troglodyte = new Troglodyte({
   synonyms,
 });
 
+// ==================== RATE LIMITING (P2-8) ====================
+// Simple sliding window rate limiter to prevent resource exhaustion from rapid message flooding.
+// Default: max 10 requests per second per session.
+const RATE_LIMIT = {
+  MAX_REQUESTS_PER_SECOND: 10,
+  WINDOW_MS: 1000,
+};
+
+let requestTimestamps: number[] = [];
+
+function checkRateLimit(): boolean {
+  const now = Date.now();
+  
+  // Remove timestamps outside the current window
+  requestTimestamps = requestTimestamps.filter(ts => now - ts < RATE_LIMIT.WINDOW_MS);
+  
+  if (requestTimestamps.length >= RATE_LIMIT.MAX_REQUESTS_PER_SECOND) {
+    console.warn(`[Troglodyte] ⚠️ Rate limit exceeded (${RATE_LIMIT.MAX_REQUESTS_PER_SECOND} req/s). Skipping compression.`);
+    return false; // Reject request
+  }
+  
+  requestTimestamps.push(now);
+  return true; // Allow request
+}
+
+// Reset rate limiter every minute to prevent memory leaks from stale timestamps
+setInterval(() => {
+  const now = Date.now();
+  requestTimestamps = requestTimestamps.filter(ts => now - ts < RATE_LIMIT.WINDOW_MS);
+}, 60_000);
+
 /**
  * Extracts only the actual user input from a message that may contain system metadata.
  * System metadata markers: [Zeit:, **SYSTEMEMPFEHLUNG:**, SYSTEMEMPFEHLUNG!
+ * FIXED: Case-insensitive matching with word boundary to avoid false positives on timestamps/file names.
  *
  * NOTE: If a marker appears mid-sentence, only text BEFORE it is processed.
  * Text after the marker is preserved but passed through uncompressed.
  */
 function extractUserInput(text: string): { userInput: string; hasSystemMetadata: boolean } {
-  // Look for system metadata markers - try multiple patterns
-  const zeitMatch = text.match(/\[Zeit:\s*/);
+  // Look for system metadata markers - FIXED: case-insensitive with word boundary
+  const zeitMatch = text.match(/(?<=\s|^)\[zeit:\s*/i);
   const systemEmpfehlungMatch1 = text.match(/\*\*SYSTEMEMPFEHLUNG:\*\*/);  // With asterisks and colon
-  const systemEmpfehlungMatch2 = text.match(/SYSTEMEMPFEHLUNG!/);           // Without asterisks, with exclamation
+  const systemEmpfehlungMatch2 = text.match(/\bSYSTEMEMPFEHLUNG!/);           // Without asterisks, with exclamation
 
   let markerIndex = -1;
 
@@ -48,6 +80,7 @@ function extractUserInput(text: string): { userInput: string; hasSystemMetadata:
     return { userInput: text, hasSystemMetadata: false };
   }
 
+
   // Extract everything before the first system metadata marker
   const userInput = text.substring(0, markerIndex).trim();
 
@@ -71,6 +104,11 @@ export async function preprocess(ctl: PromptPreprocessorController, userMessage:
   }
 
   // Read all configuration from plugin config
+  // ==================== RATE LIMIT CHECK (P2-8) ====================
+  if (!checkRateLimit()) {
+    return userMessage.getText(); // Return original text on rate limit rejection
+  }
+
   const pluginConfig = ctl.getPluginConfig(configSchematics);
   
   const compressionLevel: CompressionLevel = (pluginConfig.get("compressionLevel") as CompressionLevel) ?? "balanced";
@@ -81,8 +119,8 @@ export async function preprocess(ctl: PromptPreprocessorController, userMessage:
   const protectFilePaths = pluginConfig.get("protectFilePaths") as boolean ?? true;
   const protectJsonXml = pluginConfig.get("protectJsonXml") as boolean ?? true; // NEW
   const languageMode = pluginConfig.get("languageMode") as string ?? "auto";
-  // Stats always shown - hardcoded for visibility
-  const showStats = true;
+  // Read showStats from config (default: true)
+  const showStats = pluginConfig.get("showStats") as boolean ?? true;
 
   // Create status report for UI feedback
   const status = ctl.createStatus({
@@ -151,7 +189,14 @@ export async function preprocess(ctl: PromptPreprocessorController, userMessage:
 
   } catch (error) {
     console.error('[Troglodyte] Compression failed:', error);
-    // Keep original text on error
+    
+    // FIXED: Provide user feedback instead of silent failure
+    status.setState({ 
+      status: "error" as const, 
+      text: `Compression failed: ${error instanceof Error ? error.message.substring(0, 50) : 'Unknown'}` 
+    });
+    
+    // Keep original text on error (existing behavior)
   }
 
   return compressedText;

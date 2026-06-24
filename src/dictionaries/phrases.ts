@@ -111,8 +111,8 @@ export const phrases: Record<string, string> = {
   // 'does not equal': '!=',
 
   // Common AI prompt patterns
-  'step by step': 'steps',
-  'step-by-step': 'steps',
+  'step by step': 'sequential',
+  'step-by-step': 'sequential',
   'in detail': 'detailed',
   'in more detail': 'detailed',
   'explain in detail': 'explain detailed',
@@ -160,37 +160,37 @@ export const phrases: Record<string, string> = {
   'Sie sind': 'Sei',
   'Nehmen Sie die Rolle an von': 'Sei',
 
-  // German filler phrases
-  'Ich versuche herauszufinden': 'Need',
-  'Ich versuche zu': 'Need',
-  'Ich möchte': 'Need',
-  'Ich würde gerne': 'Need',
-  'Ich brauche': 'Need',
-  'Ich habe eine Frage': 'Question',
-  'Meine Frage ist': 'Question',
-  'Die Frage ist': 'Question',
+  // German filler phrases (FIX #16: Use empty strings for removal, not English replacements)
+  'Ich versuche herauszufinden': '',
+  'Ich versuche zu': '',
+  'Ich möchte': '',
+  'Ich würde gerne': '',
+  'Ich brauche': '',
+  'Ich habe eine Frage': 'Frage',
+  'Meine Frage ist': 'Frage',
+  'Die Frage ist': 'Frage',
   'Ich frage mich': '',
-  'Ich bin neugierig': 'Curious',
+  'Ich bin neugierig': 'Neugierig',
 
-  // German redundant phrases
+  // German redundant phrases (FIX #16: Use German or empty replacements)
   'Aufgrund der Tatsache, dass': 'Weil',
-  'Um zu': 'To',
-  'Zu dem Zweck': 'To',
-  'In diesem Moment': 'Now',
-  'An dieser Stelle': 'Now',
+  'Um zu': '',
+  'Zu dem Zweck': '',
+  'In diesem Moment': 'Jetzt',
+  'An dieser Stelle': 'Jetzt',
   'Meiner Meinung nach': 'IMO',
   'Ehrlich gesagt': '',
   'Um ehrlich zu sein': '',
   'Eigentlich': '',
   'Tatsächlich': '',
 
-  // German technical filler
-  'Stellen Sie sicher, dass': 'Ensure',
-  'Stellen Sie sicher': 'Ensure',
-  'Sicherstellen, dass': 'Ensure',
-  'Es ist wichtig': 'Important',
-  'Es ist notwendig': 'Required',
-  'Es ist erforderlich': 'Required',
+  // German technical filler (FIX #16: Use German replacements)
+  'Stellen Sie sicher, dass': 'Sicherstellen',
+  'Stellen Sie sicher': 'Sicherstellen',
+  'Sicherstellen, dass': 'Sicherstellen',
+  'Es ist wichtig': 'Wichtig',
+  'Es ist notwendig': 'Notwendig',
+  'Es ist erforderlich': 'Erforderlich',
 
   // German code-related
   'der folgende Code': 'code',
@@ -212,141 +212,13 @@ export const phrases: Record<string, string> = {
   // 'kleiner oder gleich': '<=',
   // 'ungleich': '!=',
 
-  // German common patterns
-  'Schritt für Schritt': 'steps',
-  'im Detail': 'detailed',
-  'erkläre im Detail': 'explain detailed',
+  // German common patterns (FIX #16: Use German replacements only)
+  'Schritt für Schritt': 'sequenziell',
+  'im Detail': 'detailiert',
+  'erkläre im Detail': 'erkläre detailiert',
   'geben Sie mir': '',
-  'zeigen Sie mir': 'show',
-  'sagen Sie mir': 'tell',
+  'zeigen Sie mir': 'zeig',
+  'sagen Sie mir': 'sag',
 
-  // ==================== BUILD LOG / COMPILER OUTPUT ====================
-
-  // Build status boilerplate (English)
-  'Build started': '',
-  'Build completed': '',
-  'Building': '',
-  'Compiling': '',
-  'Linking': '',
-  'Generating': '',
-  'Creating': '',
-  'Successfully': '',
-  'successfully': '',
-  'Error': 'E',
-  'Warning': 'W',
-  'Note': 'N',
-
-  // Include chain noise (most common build log filler)
-  'In file included from': 'inc',
-  'included from': 'inc',
-  'from': '',
-
-  // Project/configuration boilerplate
-  'Project:': 'Proj:',
-  'Configuration:': 'Cfg:',
-  'Platform:': 'Plat:',
-  'Target:': 'Tgt:',
-
-  // Build result summaries
-  'successful': 'ok',
-  'errors': 'err',
-  'warnings': 'warn',
-  'up to date': 'updated',
-  'skipped': 'skip',
-
-  // Time/duration boilerplate
-  'took': '',
-  'seconds': 's',
-  'milliseconds': 'ms',
-  'started at': '',
-  'completed at': '',
-  'duration:': '',
-
-  // Line number indicators (redundant with actual line numbers)
-  'at line': '',
-  'on line': '',
-  'column': 'col',
-
-  // Variable/function type descriptors
-  'variable': 'var',
-  'function': 'fn',
-  'parameter': 'param',
-  'argument': 'arg',
-  'expression': 'expr',
-  'statement': 'stmt',
-  'declaration': 'decl',
-  'definition': 'def',
-  'type': 'typ',
-
-  // Common error/warning prefixes
-  'error:': 'E:',
-  'warning:': 'W:',
-  'note:': 'N:',
-  'fatal error:': 'FE:',
-  'error C': 'C',
-  'warning C': 'WC',
-
-  // ==================== GERMAN BUILD LOG ====================
-
-  // German build status
-  'Erstellen gestartet': '',
-  'Erstellen abgeschlossen': '',
-  'Erstellung wurde': '',
-  'Projekt:': 'Proj:',
-  'Konfiguration:': 'Cfg:',
-  'erfolgreich': 'ok',
-  'Fehler': 'E',
-  'Warnung': 'W',
-  'Hinweis': 'N',
-  'aktuell': 'uptodate',
-  'übersprungen': 'skip',
-  'dauerte': '',
-  'Sekunden': 's',
-  'um': '',
-
-  // ==================== MSVC GERMAN ERROR MESSAGES ====================
-
-  // Most common repeated error messages (German → English shorthand)
-  'nichtdeklarierter Bezeichner': 'undeclared ident',
-  'Fehlender Typspezifizierer': 'missing type spec',
-  'Syntaxfehler': 'syntax err',
-  'Datei kann nicht geöffnet werden': 'cannot open file',
-  'Diese Verwendung von ist ungültig': 'invalid use of',
-  'Bezeichner wurde nicht gefunden': 'ident not found',
-
-  // MSVC error message fragments
-  'int wird angenommen': 'int assumed',
-  'default-int wird von C++ nicht unterstützt': 'no default-int in C++',
-  'Fehlendes vor': "missing ';' before",
-  'Include kann nicht geöffnet werden': 'include cannot open',
-  'No such file or directory': 'file not found',
-
-  // Build result summaries (German MSVC)
-  'Alle neu erstellen': 'Rebuild',
-  'neu erstellen': 'rebuild',
-  'fehlgeschlagen': 'fail',
-  'Neu erstellen abgeschlossen': '',
-  'und dauerte': '',
-
-  // ==================== CLANG/GCC BUILD LOG PATTERNS ====================
-
-  // Warning count summaries (repeated after each warning)
-  'warning generated': '',
-  'warnings generated': '',
-  'error generated': '',
-  'errors generated': '',
-
-  // Include path warnings
-  'resolved using non-portable Microsoft search rules as:': 'non-portable include:',
-  '#include resolved using non-portable Microsoft search rules as:': 'non-portable include:',
-
-  // Unused variable/function warnings
-  'unused variable': 'unsd var',
-  'unused function': 'unsd fn',
-  'set but not used': 'set unused',
-
-  // German build status (Clang/LLVM)
-  'Die Neuerstellung wurde': '',
-  'Neues Erstellen gestartet': '',
-  'gestartet: Projekt:': 'Proj:',
+  // ==================== END OF PROMPHRASES ====================
 };
