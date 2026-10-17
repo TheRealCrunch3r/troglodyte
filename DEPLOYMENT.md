@@ -260,7 +260,7 @@ npm run dev
 
 ---
 
-*Last Updated: June 24, 2026 — v1.3.1 Release*
+*Last Updated: October 17, 2026 — v1.3.2 Release*
 
 
 ## 🚀 Performance Optimizations (v1.1.2)

@@ -569,7 +569,7 @@ npm run dev
 
 ---
 
-## 🚀 June 24, 2026 — v1.3.1 Updates
+## 📜 Pre-release Updates (originally dated June 24, 2026 under a stale "v1.3.1" label)
 
 ### 🔴 Critical Fixes
 
@@ -600,7 +600,7 @@ The word tokenization regex now properly escapes the hyphen in character class: 
 Sliding window rate limiter added: **10 requests/second per session**. Exceeded limits return original text without compression.
 
 ### 📊 Test Results
-- **Current:** ✅ 12/12 assertions pass (up from 8/8)
+- **Current:** ✅ 33/33 assertions pass (v1.3.2; suite grown via regression test groups since June — see CHANGELOG.md)
 - Language detection tests now include real assertions for English/German output validity and explicit language overrides
 
 ---
@@ -748,4 +748,4 @@ MIT
 
 ---
 
-*Last Updated: June 24, 2026 — v1.3.1 Release*
+*Last Updated: October 17, 2026 — v1.3.2 Release*

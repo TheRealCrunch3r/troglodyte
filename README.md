@@ -22,7 +22,15 @@ Troglodyte sits between you and the LLM, compressing prompts in real-time:
 
 ---
 
-## 🚀 v1.3.1 Updates (June 24, 2026)
+## 🚀 v1.3.2 Updates (October 17, 2026)
+
+Documentation & version-consistency release — **no runtime changes** since v1.3.1:
+
+- Changelog reorganized: previously stranded v1.3.0 content placed under a dated `## [1.3.0] - 2026-06-22` heading; misfiled v1.2.x blocks retitled under `[1.2.x]`; one verbatim-duplicate section removed
+- Package metadata (`package.json`, lockfile) and manifest revision now match the changelog for every release (manifest rev 8 → 9) — v1.3.1's code had shipped while metadata still read 1.3.0
+- Test count below corrected to the current suite: **33/33** assertions pass
+
+## 📜 Pre-release Updates (originally dated June 24, 2026 under a stale "v1.3.1" label — see CHANGELOG.md)
 
 ### 🔴 Critical Fixes
 
@@ -374,7 +382,7 @@ npx ts-node src/tests/compression.test.ts
 npm test
 ```
 
-**Current Test Results:** ✅ **12/12 assertions pass** (v1.3.1)
+**Current Test Results:** ✅ **33/33 assertions pass** (v1.3.2)
 
 ### Run in Dev Mode
 ```bash
@@ -473,4 +481,4 @@ MIT
 
 ---
 
-*Last Updated: June 24, 2026 — v1.3.1 Release*
+*Last Updated: October 17, 2026 — v1.3.2 Release*

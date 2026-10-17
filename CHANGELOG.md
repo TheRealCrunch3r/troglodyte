@@ -9,6 +9,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_No changes yet._
+
+---
+
+## [1.3.2] - 2026-10-17
+
+#### Release Housekeeping & Changelog Reorganization — 2026-10-17
+**No runtime changes:** `src/` is byte-for-byte unchanged since the v1.3.1 release (same date); this patch ships documentation and version-consistency corrections only. No rebuild/reinstall required unless you want the new manifest revision in LM Studio.
+
+**Changes:**
+- **Changelog reorganization:** previously stranded v1.3.0 content now sits under a proper dated `## [1.3.0] - 2026-06-22` heading; misfiled v1.2.x blocks retitled under `## [1.2.x]`; one verbatim-duplicate copy of the first `[1.2.0]` section removed (verified line-by-line identical before deletion); the stale June-dated "v1.3.1" entry is now explicitly labeled superseded pre-release work.
+- **Version alignment:** `package.json`, `package-lock.json`, and the manifest revision now match the changelog for every release — v1.3.1's code had shipped while package metadata still read 1.3.0/revision 7. Manifest revision bumped 8 → 9 for this release.
+- **Docs:** README, PROJECT_SUMMARY, API_REFERENCE, and CONTRIBUTING footers/version pointers updated; README test count corrected to the current suite (33/33).
+
+**Verification:** full unit suite 33/33 green (`npm test`, user run 2026-10-17); TypeScript compiler API: 0 diagnostics; dist/ unchanged from v1.3.1 emit.
+
+---
+
+## [1.3.1] - 2026-10-17
+
+#### Short-Input Guardrail (FIX C1) — 2026-10-17
+**Issue:** Live LM Studio observation (screenshot, 17.10.2026): the command "go to troglodyte" was compressed by balanced mode down to the single bare word "troglodyte" ("go"/"to" stripped as EN fillers — the status line's "Compressed by 38%" is exactly `(16−10)/16`). The model then received a one-word query and answered with a dictionary definition instead of acting on intent.
+
+**Fix:**
+- `src/troglodyte.ts`: new module constant `SHORT_INPUT_TOKEN_LIMIT` (= 6) + guardrail in `compress()`. Messages at/under this many whitespace-separated tokens (counted AFTER the protection phase, so each protected item counts as one token) skip word filtering entirely — blacklist drops and synonym replacement are bypassed. Protection and phrase collapsing still apply to short inputs.
+- `src/tests/compression.test.ts`: new Test Group 8 (C1) covering the observed case, both boundary sides of the limit, protection on short input, a guard against over-protection (>6 tokens still compress), and a longer German prompt verifying DE filtering rules beyond the guardrail.
+
+**Deliberate behavior change (updated golden outputs):** Two pre-existing expectations now reflect the new contract at command scale:
+- `Bitte kannst du mir helfen?` no longer loses "bitte" (5 tokens → verbatim).
+- `Danke für die Hilfe` no longer degrades to "für die Hilfe" — stripping the gratitude word was the same meaning-destruction class ("thanks for the help" → "for the help") that C1 removes.
+Filtering of longer prompts (>6 tokens) is unchanged.
+
+**Verification:** 33/33 unit tests green; TypeScript 6.0.3 compiler API: 0 diagnostics across all 10 src files; `dist/` re-emitted and verified to contain the guardrail.
+
+#### Balanced-Mode Function-Word Carve-Out (Regressions A1/A7) — 2026-10-17
+**Issue:** Three failing unit tests showed balanced mode stripping words that carry grammatical role information:
+- EN: modal auxiliaries `could/would/should` and the verb `help` were in the filler blacklist → "Please, could you help me with the bug?" compressed to the meaningless "bug?".
+- DE: pronoun `du` (and English `i`) missing from the protection set → "Bitte kannst du mir helfen?" lost its subject ("kannst mir helfen?").
+- DE: case-bearing articles/prepositions (`die`, `für`, …) were stripped → short German prompts like "Danke für die Hilfe" degraded to unparseable "Hilfe".
+
+**Fix:**
+- `src/troglodyte.ts`: extended the balanced-mode carve-out (renamed `protectedPronouns` → `protectedFunctionWords`) with `du`/`i`, the request verb `help`, and German case-bearing articles + core prepositions. EN articles deliberately remain strippable: English tolerates article-less fragments, German case marking does not.
+- `src/dictionaries/en-filler.ts`: removed modal auxiliaries `will/would/could/should` from `EN_BALANCED`; re-listed in `EN_AGGRESSIVE` so aggressive mode strips them as before.
+
+**Impact:** All 26 unit tests pass. Balanced output keeps reference + grammar tracking ("kannst du mir helfen?" instead of "kannst mir helfen?"); token savings for modals/articles at balanced level are smaller by design, full stripping remains available via `aggressive`.
+
+### 📦 Content below this line shipped in earlier versions — moved under proper version headings during the 2026-10-17 reorganization
+
+---
+
+## [1.3.0] - 2026-06-22 (retroactive heading, date per README/PROJECT_SUMMARY; content was previously stranded under [Unreleased])
+
 ### 🔴 Critical Bug Fixes
 
 #### Case-Insensitive Phrase Lookup (Bug #1)
@@ -90,6 +142,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | Dead no-ops removed | 🟢 Low | Smaller memory footprint |
 | Language threshold lowered | 🟡 Medium | Better code-mixed/bilingual prompt handling |
 
+---
+
+## [1.2.x] - 2026-05 (retitled from v1.2.x subsections that were misfiled under [Unreleased])
+
 ### 🚀 New Features (v1.2.x)
 
 #### Pronoun Protection in Balanced Mode
@@ -114,7 +170,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.3.1] - 2026-06-24
+## Pre-release work (originally logged under a stale "v1.3.1" label, dated 2026-06-24 — superseded by the [1.3.1] release of 2026-10-17 above)
 
 ### 🔴 Critical Fixes
 
@@ -174,112 +230,6 @@ return totalTokens > 0 && (codeScore / totalTokens) > 0.15; // was 0.25
 
 ---
 
-## [1.2.0] - 2026-05-31
-
-### 🔴 Critical Bug Fixes
-
-#### Case-Insensitive Phrase Lookup (Bug #1)
-**Issue:** The replacementMap lookup used exact-case matching only. When input had "hello" but dictionary key was "Hello", the lookup failed → phrase silently deleted instead of replaced.
-
-**Fix:** Added `CaseInsensitiveMap` class extending `Map<string, V>` with case-insensitive fallback lookup. Now handles all case variations correctly.
-
-#### JSON/XML Protection Ignores String Literals (Bug #2/#9)
-**Issue:** `protectBalancedBraces` blindly counted `{` and `}` without tracking string quotes. Input like `{"message": "use {placeholder} here"}` caused premature block closure and malformed JSON.
-
-**Fix:** Added `inString` state tracking with escaped-quote awareness. Braces inside quoted strings are now skipped during depth counting.
-
-### 🟡 High-Risk Fixes
-
-#### Language Detection Neutralizes 'würde' (Bug #3)
-**Issue:** 'würde' was in `NEUTRAL_WORDS`, causing German prompts like "Ich würde gerne helfen" to lose their strongest German signal word → misclassified as English.
-
-**Fix:** Moved 'würde' from `NEUTRAL_WORDS` to `DE_HIGH`. Now correctly signals German language.
-
-#### Technical Context Over-Counts All Braces (Bug #4)
-**Issue:** `detectTechnicalContext` counted EVERY `{` and `}` in text — including curly quotes in prose — causing false technical context detection.
-
-**Fix:** Only count braces within 5 characters of a code keyword. Braces far from keywords are ignored.
-
-#### Trailing Punctuation Strips Non-German Unicode (Bug #5)
-**Issue:** Trailing cleanup regex `[^\p{L}\p{N}\uE000-\uF8FF]+` now uses Unicode letter property instead of hardcoded German ranges. French/Nordic/Spanish characters (é, ç, ñ, ø, å) were stripped from sentence endings.
-
-**Fix:** Replaced `[^\p{L}\p{N}\uE000-\uF8FF]+` with proper Unicode-aware pattern using `\p{L}` (any Unicode letter) + `\p{N}` (any Unicode digit).
-
-### 🟢 Performance & Quality Fixes
-
-#### Batched Regex Alternation Explosion (Bug #6)
-**Issue:** With 200+ phrases, a single alternation `(?:phrase1|phrase2|...|phrase200)` degrades performance on large inputs.
-
-**Fix:** Split alternation into chunks of 50 phrases each, joined with outer `|`. V8 handles smaller alternations much faster.
-
-#### Binary Synonym Toggle → Deterministic Ratio (Bug #7/#15/#NEW)
-**Issue:** Smart Mode completely disabled synonym replacement in technical context → lost compression opportunities. Then changed to `Math.random()` → **non-deterministic output** (same prompt → different results).
-
-**Fix:** Replaced probabilistic `Math.random()` with **deterministic character-code hash**: `word.split('').reduce((a,c) => a+c.charCodeAt(0),0) % 100`. Same word → same decision → reproducible output. 30% ratio applied deterministically.
-
-#### Dead No-Op Synonym Entries Removed (Bug #8)
-**Issue:** 30+ entries in `synonyms.ts` mapped words to themselves (e.g., `'undefined': 'undefined'`). Wasted memory and processing.
-
-**Fix:** Commented out all no-op entries. Dictionary reduced by ~30 entries.
-
-### 🟡 Additional Fixes (v1.3.0 Patch)
-
-#### Language Detection Threshold Lowered
-**Issue:** 1.5:1 ratio threshold caused code-mixed prompts (e.g., "Ich würde gerne die Funktion 'the quick brown fox' implementieren") to default to English.
-
-**Fix:** Lowered threshold from 1.5 to 1.2. Mixed prompts now get a fairer classification.
-
-#### JSON String Tracking — Only Double-Quotes
-**Issue:** Tracking both `'` and `"` as string delimiters caused false toggles when JSON had single quotes inside double-quoted strings: `{"key": "she said 'hello {world}'"}`.
-
-**Fix:** Standard JSON only uses double quotes for strings. Single quotes inside double-quoted strings are literal characters. Now only tracks `"` as string delimiters.
-
-#### Emoji Preservation in Trailing Cleanup
-**Issue:** Trailing cleanup `[^\p{L}\p{N}\uE000-\uF8FF]+$` stripped emoji (which are `\p{So}` symbols, not `\p{L}` letters).
-
-**Fix:** Added `\p{So}` (emoji/symbols), `\p{Sk}` (modifiers), `\p{Sc}` (currency), `\p{Sm}` (math) to allowed character class.
-
-#### Windows Path Lookahead Too Restrictive (Bug #14)
-**Issue:** Path protection required trailing punctuation/space. Paths at end of sentence without punctuation weren't protected.
-
-**Fix:** Lookahead already includes `$` (end-of-string), so this was actually working. Documented as verified.
-
-### 📊 Impact Summary (v1.3.0)
-| Fix | Severity | Impact |
-|-----|----------|--------|
-| Case-insensitive lookup | 🔴 Critical | No more silent phrase deletions |
-| JSON string tracking | 🔴 Critical | No more malformed JSON structures |
-| 'würde' → DE_HIGH | 🟡 High | German prompts no longer misclassified |
-| Smart brace counting | 🟡 High | No more false technical detection |
-| Unicode trailing cleanup | 🟡 High | French/Nordic/Spanish/emoji text preserved |
-| Regex chunking | 🟢 Low | Better performance on large inputs |
-| Deterministic synonyms | 🔴 Critical | Same input → same output (no randomness) |
-| Dead no-ops removed | 🟢 Low | Smaller memory footprint |
-| Language threshold lowered | 🟡 Medium | Better code-mixed/bilingual prompt handling |
-
-### 🚀 New Features (v1.2.x)
-
-#### Pronoun Protection in Balanced Mode
-**Feature:** Preserves essential pronouns (`he`, `him`, `his`, `she`, `her`, `it`, `they`, `them`, `their`, and German equivalents like `er`, `sie`, `es`, `wir`, `uns`) during balanced compression to maintain reference tracking across sentences. Pronouns are only removed in aggressive mode where context loss is less critical.
-
-#### Trailing Punctuation Preservation
-**Feature:** Questions and exclamations (`?`, `!`) are now preserved through the entire pipeline via dedicated trailing punctuation extraction/restoration logic, ensuring output retains original intent markers.
-
-#### PUA-Aware Word Tokenization
-**Feature:** The word tokenization pattern now includes Private Use Area characters (`\uE000-\uF8FF`), preventing placeholder corruption during split/join operations when protected items contain Unicode placeholders.
-
-#### Automatic Stats Reset Thresholds
-**Feature:** Per-instance statistics are automatically reset after 10,000 compressions or 10MB of processed text to prevent memory accumulation in long-running sessions.
-
-### 🐛 Bug Fixes (v1.2.x)
-
-#### XML Depth Tracking Fix
-**Fix:** The inner regex search for closing tags properly skips matches before `searchPos` without resetting `lastIndex`, ensuring depth tracking stays within correct tag boundaries and prevents matching unrelated earlier tags.
-
-#### Technical Context Over-Counting Fixed
-**Fix:** Simplified technical context detection to count code keywords and opening braces separately, eliminating double-counting for prompts like `{<tag>}` where patterns previously overlapped.
-
----
 
 ## [1.2.0] - 2026-05-31
 
@@ -666,8 +616,9 @@ Automatically strips `[Zeit:`, `**SYSTEMEMPFEHLUNG:**` markers from prompts befo
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| 1.3.1 | 2026-06-24 | Smart Mode threshold lowered (0.25→0.15), build-log phrases removed, rate limiting added, ReDoS protection, Unicode token fix |
-| Unreleased | 2026-06-22 | Pronoun protection, trailing punctuation preservation, PUA-aware tokenization, stats reset thresholds, XML depth fix |
+| 1.3.2 | 2026-10-17 | Docs-only patch: changelog reorganization (stranded v1.3.0/v1.2.x content re-homed, duplicate section removed), package metadata aligned with changelog, manifest rev 8→9 — no runtime changes |
+| 1.3.1 | 2026-10-17 | Short-input guardrail (FIX C1), balanced-mode function-word carve-out (A1/A7); also folds in work previously logged under a stale "v1.3.1" label dated 2026-06-24 (Smart Mode threshold, rate limiting, ReDoS protection) |
+| 1.2.x | 2026-05 | Pronoun protection, trailing punctuation preservation, PUA-aware tokenization, stats reset thresholds, XML depth fix |
 | 1.2.0 | 2026-05-31 | escapeRegex fix, word filtering reconstruction, XML depth tracking, technical context over-counting |
 | 1.1.2 | 2026-05-24 | PUA restoration regex, dead synonyms removed, technical detection cached |
 | 1.0.3 | 2026-05-18 | Performance optimizations, German output fix, input validation |
@@ -683,4 +634,4 @@ MIT
 
 ---
 
-*Last Updated: June 24, 2026 — v1.3.1 Release*
+*Last Updated: October 17, 2026 — v1.3.2 Release*
